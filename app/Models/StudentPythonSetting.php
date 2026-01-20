@@ -1,0 +1,35 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+/**
+ * StudentPythonSetting Model
+ * Stores certificate settings for Python-based certificate generation
+ * Separate from StudentImageSetting to avoid conflicts
+ */
+class StudentPythonSetting extends Model
+{
+    protected $fillable = [
+        'track_id',
+        'gender',
+        'certificate_bg',
+        'positions',
+        'style',
+        'print_defaults',
+        'date_type',
+        'notes',
+    ];
+
+    protected $casts = [
+        'positions' => 'array',
+        'style' => 'array',
+        'print_defaults' => 'array',
+    ];
+
+    public function track()
+    {
+        return $this->belongsTo(Track::class);
+    }
+}

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true">
+  <php>
+    <server name="APP_URL" value="http://127.0.0.1:8000"/>
+    <server name="DUSK_DRIVER_URL" value="http://localhost:9516"/>
+  </php>
+  <testsuites>
+    <testsuite name="browser">
+      <directory suffix="Test.php">./tests/Browser</directory>
+    </testsuite>
+  </testsuites>
+</phpunit>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 
 class RoleController extends Controller
@@ -12,12 +13,41 @@ class RoleController extends Controller
     /**
      * Display a listing of roles.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $roles = Role::with('permissions')->withCount('users')->get();
+        // Get sorting parameters
+        $sortColumn = $request->get('sort', 'level');
+        $sortDirection = $request->get('dir', 'asc');
+
+        // Validate sort column
+        $allowedSorts = ['name', 'slug', 'level', 'users_count', 'permissions_count'];
+        if (!in_array($sortColumn, $allowedSorts)) {
+            $sortColumn = 'level';
+        }
+
+        // Build query
+        $query = Role::with('permissions')->withCount(['users', 'permissions']);
+
+        // Apply sorting
+        if ($sortColumn === 'permissions_count') {
+            $query->orderBy('permissions_count', $sortDirection);
+        } elseif ($sortColumn === 'users_count') {
+            $query->orderBy('users_count', $sortDirection);
+        } else {
+            $query->orderBy($sortColumn, $sortDirection);
+        }
+
+        $roles = $query->get();
+
+        // Pass current filters for sorting links
+        $currentFilters = [
+            'sort' => $sortColumn,
+            'dir' => $sortDirection,
+        ];
 
         return view('auth.roles.index', [
             'roles' => $roles,
+            'currentFilters' => $currentFilters,
         ]);
     }
 
@@ -75,6 +105,11 @@ class RoleController extends Controller
             $role->syncPermissions($request->permissions);
         }
 
+        // Log role creation
+        ActivityLogService::logCreate($role, null, [
+            'permissions_count' => count($request->permissions ?? []),
+        ]);
+
         return redirect()->route('roles.index')
             ->with('status', 'تم إنشاء الدور بنجاح!');
     }
@@ -126,6 +161,10 @@ class RoleController extends Controller
             'permissions.*' => ['exists:permissions,id'],
         ]);
 
+        // Store old values for logging
+        $oldValues = $role->toArray();
+        $oldPermissions = $role->permissions->pluck('id')->toArray();
+
         // Build update data
         $updateData = [
             'name' => $request->name,
@@ -150,6 +189,14 @@ class RoleController extends Controller
             $role->syncPermissions($request->permissions ?? []);
         }
 
+        // Log role update
+        $newPermissions = $request->permissions ?? [];
+        ActivityLogService::logUpdate($role, $oldValues, null, [
+            'permissions_changed' => $oldPermissions != $newPermissions,
+            'old_permissions_count' => count($oldPermissions),
+            'new_permissions_count' => count($newPermissions),
+        ]);
+
         return redirect()->route('roles.index')
             ->with('status', 'تم تحديث الدور بنجاح!');
     }
@@ -168,6 +215,9 @@ class RoleController extends Controller
         if ($role->users()->count() > 0) {
             return back()->withErrors(['error' => 'لا يمكن حذف دور له مستخدمين. قم بنقل المستخدمين أولاً.']);
         }
+
+        // Log role deletion before deleting
+        ActivityLogService::logDelete($role);
 
         $role->delete();
 

@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
+use App\Services\ActivityLogService;
 
 class AdminTeacherController extends Controller
 {
@@ -52,11 +53,14 @@ class AdminTeacherController extends Controller
             }
         }
 
-        // Merge config tracks (for backward compatibility)
-        $configTracks = config('certificates.tracks_teacher', []);
-        foreach ($configTracks as $key => $names) {
-            if (!isset($tracks[$key])) {
-                $tracks[$key] = $names;
+        // Merge config tracks (for backward compatibility) - only for super users
+        // Regular institution users should only see their institution's database tracks
+        if ($user->isSuperUser()) {
+            $configTracks = config('certificates.tracks_teacher', []);
+            foreach ($configTracks as $key => $names) {
+                if (!isset($tracks[$key])) {
+                    $tracks[$key] = $names;
+                }
             }
         }
 
@@ -225,7 +229,10 @@ class AdminTeacherController extends Controller
         @unlink($imageAbs);
 
         // Move PDF to storage and create download URL
-        $pdfName = 'teacher_certificate_' . time() . '.pdf';
+        // Name format: user_name_track_name.pdf (preserves Arabic characters)
+        $namePart = $this->safeFilename($request->input('name_ar') ?: $request->input('name_en'), 'شهادة');
+        $trackPart = $this->safeFilename($pair['ar'] ?: $pair['en'], 'مسار');
+        $pdfName = $namePart . '_' . $trackPart . '.pdf';
         $pdfRel = 'certificates/' . $pdfName;
         $pdfDestAbs = Storage::disk('local')->path($pdfRel);
 
@@ -236,6 +243,14 @@ class AdminTeacherController extends Controller
         }
 
         rename($pdfAbs, $pdfDestAbs);
+
+        // Log certificate generation
+        ActivityLogService::logGenerate($pair['ar'] ?? $pair['en'], 1, 'pdf', [
+            'recipient_name' => $request->input('name_ar') ?: $request->input('name_en'),
+            'track_key' => $trackKey,
+            'gender' => $gender,
+            'type' => 'teacher',
+        ]);
 
         $url = URL::temporarySignedRoute('download', now()->addMinutes(60), [
             'p' => Crypt::encryptString($pdfRel),
@@ -510,6 +525,13 @@ class AdminTeacherController extends Controller
             ]
         );
 
+        // Log settings save
+        ActivityLogService::logSaveSettings('إعدادات شهادات المعلمين', $track, null, [
+            'track_key' => $trackKey,
+            'track_name' => $track->name_ar,
+            'gender' => $gender,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'تم حفظ الإعدادات الافتراضية بنجاح.'
@@ -708,6 +730,11 @@ class AdminTeacherController extends Controller
             'date_type' => 'duration',
         ]);
 
+        // Log track creation
+        ActivityLogService::logCreate($track, 'إضافة مسار معلمين جديد', [
+            'track_type' => 'teacher',
+        ]);
+
         return back()->with('success', 'تم إضافة المسار بنجاح.');
     }
 
@@ -754,6 +781,9 @@ class AdminTeacherController extends Controller
             'female_certificate' => 'nullable|image|mimes:jpeg,jpg,png|max:10240',
         ]);
 
+        // Store old values for logging
+        $oldValues = $track->toArray();
+
         // Update track name
         $track->update([
             'name_ar' => $request->input('name_ar'),
@@ -792,6 +822,15 @@ class AdminTeacherController extends Controller
                 ->update(['certificate_bg' => $femalePath]);
         }
 
+        // Log track update
+        ActivityLogService::logUpdate($track, $oldValues, 'تعديل مسار معلمين', [
+            'track_type' => 'teacher',
+            'certificates_updated' => [
+                'male' => $request->hasFile('male_certificate'),
+                'female' => $request->hasFile('female_certificate'),
+            ],
+        ]);
+
         return back()->with('success', 'تم تعديل المسار بنجاح.');
     }
 
@@ -818,6 +857,11 @@ class AdminTeacherController extends Controller
                 @unlink($certPath);
             }
         }
+
+        // Log track deletion before deleting
+        ActivityLogService::logDelete($track, 'حذف مسار معلمين', [
+            'track_type' => 'teacher',
+        ]);
 
         // Delete track (cascade will delete teacher_settings)
         $track->delete();
@@ -1043,6 +1087,14 @@ class AdminTeacherController extends Controller
             $photoAbs
         );
 
+        // Log certificate generation
+        ActivityLogService::logGenerate($pair['ar'] ?? $pair['en'], 1, 'image', [
+            'recipient_name' => $request->input('name_ar') ?: $request->input('name_en'),
+            'track_key' => $trackKey,
+            'gender' => $gender,
+            'type' => 'teacher',
+        ]);
+
         $url = URL::temporarySignedRoute('download', now()->addMinutes(60), [
             'p' => Crypt::encryptString($imageRel),
         ]);
@@ -1097,5 +1149,25 @@ class AdminTeacherController extends Controller
         $mpdf->Output($pdfPath, \Mpdf\Output\Destination::FILE);
 
         return $pdfPath;
+    }
+
+    /**
+     * Create a safe filename that preserves Arabic characters.
+     * Only removes characters that are invalid in filenames.
+     *
+     * @param string $name The name to sanitize
+     * @param string $fallback Fallback if name is empty
+     * @return string Safe filename
+     */
+    private function safeFilename(string $name, string $fallback = 'شهادة'): string
+    {
+        $name = trim($name) ?: $fallback;
+        // Remove invalid filename characters: \ / : * ? " < > | and newlines
+        $name = preg_replace('/[\\\\\\/\\:\\*\\?\\"\\<\\>\\|\\r\\n]+/u', ' ', $name);
+        // Collapse multiple spaces
+        $name = preg_replace('/\\s+/u', ' ', $name);
+        // Limit length
+        $name = mb_substr($name, 0, 80, 'UTF-8');
+        return trim($name);
     }
 }

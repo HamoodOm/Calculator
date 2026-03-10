@@ -16,82 +16,98 @@ class RoleSeeder extends Seeder
     public function run()
     {
         // Super Admin - has all permissions (handled automatically in code)
+        // Level 0: Highest privilege
         $superAdmin = Role::updateOrCreate(
             ['slug' => Role::SUPER_ADMIN],
             [
                 'name' => 'المسؤول العام',
                 'description' => 'لديه جميع الصلاحيات والوصول الكامل للنظام',
                 'is_system' => true,
+                'level' => 0,
             ]
         );
 
         // Developer - has all permissions + debug features
+        // Level 5: Reserved for special roles
         $developer = Role::updateOrCreate(
             ['slug' => Role::DEVELOPER],
             [
                 'name' => 'المطور',
                 'description' => 'لديه جميع الصلاحيات مع ميزات التصحيح والتطوير',
                 'is_system' => true,
+                'level' => 5,
             ]
         );
 
         // TS Admin - Teacher & Student Admin (all pages access)
+        // Level 20: Admin tier starts
         $tsAdmin = Role::updateOrCreate(
             ['slug' => Role::TS_ADMIN],
             [
                 'name' => 'مسؤول المعلمين والطلاب',
                 'description' => 'لديه وصول لجميع صفحات المعلمين والطلاب',
                 'is_system' => true,
+                'level' => 20,
             ]
         );
 
         // T Admin - Teacher Admin (teacher pages only)
+        // Level 25: Same tier as S Admin
         $tAdmin = Role::updateOrCreate(
             ['slug' => Role::T_ADMIN],
             [
                 'name' => 'مسؤول المعلمين',
                 'description' => 'لديه وصول لصفحات المعلمين البسيطة والمتقدمة',
                 'is_system' => true,
+                'level' => 25,
             ]
         );
 
         // S Admin - Student Admin (student pages only)
+        // Level 25: Same tier as T Admin
         $sAdmin = Role::updateOrCreate(
             ['slug' => Role::S_ADMIN],
             [
                 'name' => 'مسؤول الطلاب',
                 'description' => 'لديه وصول لصفحات الطلاب البسيطة والمتقدمة',
                 'is_system' => true,
+                'level' => 25,
             ]
         );
 
         // TS User - Teacher & Student Simple User
+        // Level 30: User tier starts
         $tsUser = Role::updateOrCreate(
             ['slug' => Role::TS_USER],
             [
                 'name' => 'مستخدم المعلمين والطلاب',
                 'description' => 'لديه وصول لصفحات المعلمين والطلاب البسيطة فقط',
                 'is_system' => true,
+                'level' => 30,
             ]
         );
 
         // T User - Teacher Simple User
+        // Level 35: Same tier as S User
         $tUser = Role::updateOrCreate(
             ['slug' => Role::T_USER],
             [
                 'name' => 'مستخدم المعلمين',
                 'description' => 'لديه وصول لصفحة المعلمين البسيطة فقط',
                 'is_system' => true,
+                'level' => 35,
             ]
         );
 
         // S User - Student Simple User
+        // Level 35: Same tier as T User
         $sUser = Role::updateOrCreate(
             ['slug' => Role::S_USER],
             [
                 'name' => 'مستخدم الطلاب',
                 'description' => 'لديه وصول لصفحة الطلاب البسيطة فقط',
                 'is_system' => true,
+                'level' => 35,
             ]
         );
 

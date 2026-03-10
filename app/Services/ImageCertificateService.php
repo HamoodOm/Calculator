@@ -687,6 +687,8 @@ class ImageCertificateService
 
     /**
      * Draw photo on certificate with scaled coordinates
+     * Uses object-fit: contain behavior - scales the entire image to fit within the box
+     * without cropping, maintaining aspect ratio (may result in letterboxing)
      */
     private function drawPhoto($image, array $pos, string $photoAbs): void
     {
@@ -715,33 +717,35 @@ class ImageCertificateService
 
         if (!$photo) return;
 
-        // Resize and copy photo to certificate (maintaining aspect ratio)
+        // Get source dimensions
         $srcWidth = imagesx($photo);
         $srcHeight = imagesy($photo);
         $srcRatio = $srcWidth / $srcHeight;
         $destRatio = $widthPx / $heightPx;
 
-        // Calculate source crop dimensions to maintain aspect ratio
+        // SCALE (object-fit: contain) - fit entire image within box, maintaining aspect ratio
+        // Calculate destination dimensions that fit within the box
         if ($srcRatio > $destRatio) {
-            // Source is wider - crop sides
-            $cropWidth = (int)($srcHeight * $destRatio);
-            $cropHeight = $srcHeight;
-            $srcX = (int)(($srcWidth - $cropWidth) / 2);
-            $srcY = 0;
+            // Source is wider - fit to width, center vertically
+            $scaledWidth = $widthPx;
+            $scaledHeight = (int)($widthPx / $srcRatio);
+            $destX = $leftPx;
+            $destY = $topPx + (int)(($heightPx - $scaledHeight) / 2);
         } else {
-            // Source is taller - crop top/bottom
-            $cropWidth = $srcWidth;
-            $cropHeight = (int)($srcWidth / $destRatio);
-            $srcX = 0;
-            $srcY = (int)(($srcHeight - $cropHeight) / 2);
+            // Source is taller - fit to height, center horizontally
+            $scaledHeight = $heightPx;
+            $scaledWidth = (int)($heightPx * $srcRatio);
+            $destX = $leftPx + (int)(($widthPx - $scaledWidth) / 2);
+            $destY = $topPx;
         }
 
+        // Copy the entire source image, scaled to fit within the destination box
         imagecopyresampled(
             $image, $photo,
-            $leftPx, $topPx,
-            $srcX, $srcY,
-            $widthPx, $heightPx,
-            $cropWidth, $cropHeight
+            $destX, $destY,           // Destination position (centered within box)
+            0, 0,                      // Source position (entire image)
+            $scaledWidth, $scaledHeight, // Destination size (scaled to fit)
+            $srcWidth, $srcHeight      // Source size (entire image)
         );
 
         imagedestroy($photo);
@@ -905,6 +909,7 @@ class ImageCertificateService
 
     /**
      * Generate a single certificate image
+     * Filename format: name_track_name.png (e.g., Ahmed_Mohammed_Full_Stack_Development.png)
      */
     public function generateSingle(
         string $nameAr,
@@ -920,8 +925,11 @@ class ImageCertificateService
     ): string
     {
         $folderSlug = Str::slug($nameEn ?: $nameAr, '_');
-        $fileBase   = $this->safeFilename($nameAr ?: $nameEn, 'شهادة');
-        $filename   = $fileBase . '.png';
+        // Include track name in filename: name_track.png
+        $namePart  = $this->safeFilename($nameAr ?: $nameEn, 'شهادة');
+        $trackPart = $this->safeFilename($trackAr ?: $trackEn, 'track');
+        $fileBase  = $namePart . '_' . $trackPart;
+        $filename  = $fileBase . '.png';
 
         $dir      = "{$this->root}/{$folderSlug}";
         $relative = "{$dir}/{$filename}";

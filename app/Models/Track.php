@@ -63,6 +63,9 @@ class Track extends Model
 
     /**
      * Scope to get tracks accessible by a user.
+     * - Super users and developers can see all tracks
+     * - Users with TRACKS_VIEW_GLOBAL permission can see global tracks (institution_id = null)
+     * - Regular institution users can only see their institution's tracks
      */
     public function scopeAccessibleBy($query, User $user)
     {
@@ -71,7 +74,18 @@ class Track extends Model
             return $query;
         }
 
-        // Regular users can only see tracks from their institution
+        // Users with global tracks permission can see their institution tracks + global tracks
+        if ($user->hasPermission(Permission::TRACKS_VIEW_GLOBAL)) {
+            if ($user->institution_id) {
+                return $query->where(function ($q) use ($user) {
+                    $q->where('institution_id', $user->institution_id)
+                      ->orWhereNull('institution_id');
+                });
+            }
+            return $query;
+        }
+
+        // Regular users can only see tracks from their institution (NO global tracks)
         if ($user->institution_id) {
             return $query->where('institution_id', $user->institution_id);
         }

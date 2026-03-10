@@ -10,6 +10,9 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\RoleController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Auth\InstitutionController;
+use App\Http\Controllers\Auth\ActivityLogController;
+use App\Http\Controllers\Auth\TrackController;
+use App\Http\Controllers\Auth\ApiClientController;
 use App\Models\Permission;
 
 // ===== Authentication Routes (Public) =====
@@ -100,6 +103,98 @@ Route::middleware(['auth', 'active'])->prefix('institutions')->name('institution
     Route::patch('/{institution}/tracks/{track}/toggle', [InstitutionController::class, 'toggleTrack'])
         ->middleware('permission:' . Permission::TRACKS_EDIT)
         ->name('toggle-track');
+});
+
+// ===== Activity Logs Routes =====
+Route::middleware(['auth', 'active'])->prefix('activity-logs')->name('activity-logs.')->group(function () {
+    Route::get('/', [ActivityLogController::class, 'index'])
+        ->middleware('permission:' . Permission::ACTIVITY_LOGS_VIEW)
+        ->name('index');
+    Route::get('/export', [ActivityLogController::class, 'export'])
+        ->middleware('permission:' . Permission::ACTIVITY_LOGS_VIEW)
+        ->name('export');
+    Route::get('/{activityLog}', [ActivityLogController::class, 'show'])
+        ->middleware('permission:' . Permission::ACTIVITY_LOGS_VIEW)
+        ->name('show');
+});
+
+// ===== Track Management Routes =====
+Route::middleware(['auth', 'active'])->prefix('tracks')->name('tracks.')->group(function () {
+    Route::get('/', [TrackController::class, 'index'])
+        ->middleware('permission:' . Permission::TRACKS_VIEW)
+        ->name('index');
+    Route::get('/export', [TrackController::class, 'export'])
+        ->middleware('permission:' . Permission::TRACKS_VIEW)
+        ->name('export');
+    Route::get('/create', [TrackController::class, 'create'])
+        ->middleware('permission:' . Permission::TRACKS_CREATE)
+        ->name('create');
+    Route::post('/', [TrackController::class, 'store'])
+        ->middleware('permission:' . Permission::TRACKS_CREATE)
+        ->name('store');
+    Route::get('/{track}/edit', [TrackController::class, 'edit'])
+        ->middleware('permission:' . Permission::TRACKS_EDIT)
+        ->name('edit');
+    Route::put('/{track}', [TrackController::class, 'update'])
+        ->middleware('permission:' . Permission::TRACKS_EDIT)
+        ->name('update');
+    Route::patch('/{track}/toggle', [TrackController::class, 'toggle'])
+        ->middleware('permission:' . Permission::TRACKS_EDIT)
+        ->name('toggle');
+    Route::delete('/{track}', [TrackController::class, 'destroy'])
+        ->middleware('permission:' . Permission::TRACKS_DELETE)
+        ->name('destroy');
+});
+
+// ===== API Client Management Routes =====
+Route::middleware(['auth', 'active'])->prefix('api-clients')->name('api-clients.')->group(function () {
+    Route::get('/', [ApiClientController::class, 'index'])
+        ->middleware('permission:' . Permission::API_CLIENTS_VIEW)
+        ->name('index');
+    Route::get('/create', [ApiClientController::class, 'create'])
+        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->name('create');
+    Route::post('/', [ApiClientController::class, 'store'])
+        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->name('store');
+    Route::get('/{apiClient}', [ApiClientController::class, 'show'])
+        ->middleware('permission:' . Permission::API_CLIENTS_VIEW)
+        ->name('show');
+    Route::get('/{apiClient}/edit', [ApiClientController::class, 'edit'])
+        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->name('edit');
+    Route::put('/{apiClient}', [ApiClientController::class, 'update'])
+        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->name('update');
+    Route::delete('/{apiClient}', [ApiClientController::class, 'destroy'])
+        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->name('destroy');
+    Route::patch('/{apiClient}/toggle', [ApiClientController::class, 'toggle'])
+        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->name('toggle');
+    Route::post('/{apiClient}/regenerate', [ApiClientController::class, 'regenerateCredentials'])
+        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->name('regenerate');
+    Route::get('/{apiClient}/logs', [ApiClientController::class, 'logs'])
+        ->middleware('permission:' . Permission::API_CLIENTS_VIEW)
+        ->name('logs');
+
+    // Course Mappings
+    Route::get('/{apiClient}/mappings', [ApiClientController::class, 'courseMappings'])
+        ->middleware('permission:' . Permission::API_CLIENTS_VIEW)
+        ->name('mappings');
+    Route::post('/{apiClient}/mappings', [ApiClientController::class, 'storeCourseMapping'])
+        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->name('mappings.store');
+    Route::put('/{apiClient}/mappings/{mapping}', [ApiClientController::class, 'updateCourseMapping'])
+        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->name('mappings.update');
+    Route::patch('/{apiClient}/mappings/{mapping}/toggle', [ApiClientController::class, 'toggleCourseMapping'])
+        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->name('mappings.toggle');
+    Route::delete('/{apiClient}/mappings/{mapping}', [ApiClientController::class, 'destroyCourseMapping'])
+        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->name('mappings.destroy');
 });
 
 // ===== Home Route =====

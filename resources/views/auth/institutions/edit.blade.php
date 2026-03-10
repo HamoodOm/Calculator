@@ -9,6 +9,22 @@
         <p class="text-gray-600 mt-1">تعديل بيانات المؤسسة</p>
     </div>
 
+    @if (session('status'))
+        <div class="bg-green-50 border border-green-200 text-green-700 p-4 rounded mb-6">
+            {{ session('status') }}
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded mb-6">
+            <ul class="list-disc list-inside">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <form method="POST" action="{{ route('institutions.update', $institution) }}" class="bg-white rounded-lg shadow p-6 space-y-6">
         @csrf
         @method('PUT')

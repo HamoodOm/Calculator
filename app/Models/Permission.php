@@ -42,6 +42,8 @@ class Permission extends Model
     const ROLES_DELETE = 'roles.delete';
 
     // Track management permissions
+    const TRACKS_VIEW = 'tracks.view';
+    const TRACKS_VIEW_GLOBAL = 'tracks.view.global';
     const TRACKS_CREATE = 'tracks.create';
     const TRACKS_EDIT = 'tracks.edit';
     const TRACKS_DELETE = 'tracks.delete';
@@ -49,6 +51,13 @@ class Permission extends Model
     // Institution management permissions
     const INSTITUTIONS_VIEW = 'institutions.view';
     const INSTITUTIONS_MANAGE = 'institutions.manage';
+
+    // Activity logs permissions
+    const ACTIVITY_LOGS_VIEW = 'activity-logs.view';
+
+    // API Client management permissions
+    const API_CLIENTS_VIEW = 'api-clients.view';
+    const API_CLIENTS_MANAGE = 'api-clients.manage';
 
     // Debug permissions (developer only)
     const DEBUG_VIEW = 'debug.view';

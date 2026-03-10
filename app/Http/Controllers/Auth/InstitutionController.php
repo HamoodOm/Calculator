@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Institution;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -62,7 +63,7 @@ class InstitutionController extends Controller
         $headerColor = $useHexColor ? 'bg-gray-700' : ($request->header_color ?? 'bg-indigo-700');
         $customHexColor = $useHexColor ? $request->custom_hex_color : null;
 
-        Institution::create([
+        $institution = Institution::create([
             'name' => $request->name,
             'slug' => $slug,
             'description' => $request->description,
@@ -71,6 +72,9 @@ class InstitutionController extends Controller
             'badge_color' => str_replace('-700', '-500', $headerColor),
             'is_active' => $request->boolean('is_active', true),
         ]);
+
+        // Log institution creation
+        ActivityLogService::logCreate($institution);
 
         return redirect()->route('institutions.index')
             ->with('status', 'تم إنشاء المؤسسة بنجاح!');
@@ -108,6 +112,9 @@ class InstitutionController extends Controller
         $headerColor = $useHexColor ? 'bg-gray-700' : ($request->header_color ?? $institution->header_color);
         $customHexColor = $useHexColor ? $request->custom_hex_color : null;
 
+        // Store old values for logging
+        $oldValues = $institution->toArray();
+
         $institution->update([
             'name' => $request->name,
             'description' => $request->description,
@@ -116,6 +123,9 @@ class InstitutionController extends Controller
             'badge_color' => str_replace('-700', '-500', $headerColor),
             'is_active' => $request->boolean('is_active', true),
         ]);
+
+        // Log institution update
+        ActivityLogService::logUpdate($institution, $oldValues);
 
         return redirect()->route('institutions.index')
             ->with('status', 'تم تحديث المؤسسة بنجاح!');
@@ -136,6 +146,9 @@ class InstitutionController extends Controller
             return back()->withErrors(['error' => 'لا يمكن حذف مؤسسة لها مسارات. قم بحذف المسارات أولاً.']);
         }
 
+        // Log institution deletion before deleting
+        ActivityLogService::logDelete($institution);
+
         $institution->delete();
 
         return redirect()->route('institutions.index')
@@ -150,6 +163,9 @@ class InstitutionController extends Controller
         $institution->update([
             'is_active' => !$institution->is_active,
         ]);
+
+        // Log toggle action
+        ActivityLogService::logToggle($institution, $institution->is_active);
 
         $status = $institution->is_active ? 'تم تفعيل' : 'تم تعطيل';
 

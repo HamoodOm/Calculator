@@ -109,6 +109,18 @@ class PermissionSeeder extends Seeder
 
             // Track management permissions
             [
+                'name' => 'عرض المسارات',
+                'slug' => Permission::TRACKS_VIEW,
+                'description' => 'الوصول إلى صفحة إدارة المسارات',
+                'group' => 'إدارة المسارات',
+            ],
+            [
+                'name' => 'عرض المسارات العامة',
+                'slug' => Permission::TRACKS_VIEW_GLOBAL,
+                'description' => 'عرض المسارات العامة (غير مرتبطة بمؤسسة)',
+                'group' => 'إدارة المسارات',
+            ],
+            [
                 'name' => 'إنشاء المسارات',
                 'slug' => Permission::TRACKS_CREATE,
                 'description' => 'إنشاء مسارات جديدة للشهادات',
@@ -139,6 +151,28 @@ class PermissionSeeder extends Seeder
                 'slug' => Permission::INSTITUTIONS_MANAGE,
                 'description' => 'إنشاء وتعديل وحذف المؤسسات',
                 'group' => 'إدارة المؤسسات',
+            ],
+
+            // Activity logs permissions
+            [
+                'name' => 'عرض سجل النشاطات',
+                'slug' => Permission::ACTIVITY_LOGS_VIEW,
+                'description' => 'عرض سجل نشاطات المستخدمين في النظام',
+                'group' => 'إدارة النظام',
+            ],
+
+            // API Client management permissions
+            [
+                'name' => 'عرض عملاء API',
+                'slug' => Permission::API_CLIENTS_VIEW,
+                'description' => 'عرض قائمة عملاء API والمنصات الخارجية',
+                'group' => 'إدارة API',
+            ],
+            [
+                'name' => 'إدارة عملاء API',
+                'slug' => Permission::API_CLIENTS_MANAGE,
+                'description' => 'إنشاء وتعديل وحذف عملاء API وربط الدورات',
+                'group' => 'إدارة API',
             ],
 
             // Debug permissions

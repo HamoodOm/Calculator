@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Institution;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -246,6 +247,9 @@ class UserController extends Controller
             'is_active' => $request->boolean('is_active', true),
         ]);
 
+        // Log user creation
+        ActivityLogService::logCreate($user);
+
         return redirect()->route('users.index')
             ->with('status', 'تم إنشاء المستخدم بنجاح!');
     }
@@ -383,7 +387,13 @@ class UserController extends Controller
             }
         }
 
+        // Store old values for logging
+        $oldValues = $user->toArray();
+
         $user->update($updateData);
+
+        // Log user update
+        ActivityLogService::logUpdate($user, $oldValues);
 
         return redirect()->route('users.index')
             ->with('status', 'تم تحديث المستخدم بنجاح!');
@@ -422,6 +432,9 @@ class UserController extends Controller
             }
         }
 
+        // Log user deletion before deleting
+        ActivityLogService::logDelete($user);
+
         $user->delete();
 
         return redirect()->route('users.index')
@@ -452,6 +465,9 @@ class UserController extends Controller
 
         $user->is_active = !$user->is_active;
         $user->save();
+
+        // Log toggle action
+        ActivityLogService::logToggle($user, $user->is_active);
 
         $status = $user->is_active ? 'تم تفعيل المستخدم بنجاح!' : 'تم تعطيل المستخدم بنجاح!';
 

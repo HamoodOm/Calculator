@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StudentsRequest;
 use App\Services\CertificateService;
 use App\Services\ImageCertificateService;
+use App\Services\ActivityLogService;
 use App\Support\PrintFlags;
 use App\Services\TemplateResolver;
 use App\Services\FontRegistry;
@@ -73,11 +74,14 @@ class StudentCertificatesController extends Controller
             }
         }
 
-        // Merge config tracks (for backward compatibility)
-        $configTracks = config('certificates.tracks_student', []);
-        foreach ($configTracks as $key => $names) {
-            if (!isset($tracks[$key])) {
-                $tracks[$key] = $names;
+        // Merge config tracks (for backward compatibility) - only for super users
+        // Regular institution users should only see their institution's database tracks
+        if ($user->isSuperUser()) {
+            $configTracks = config('certificates.tracks_student', []);
+            foreach ($configTracks as $key => $names) {
+                if (!isset($tracks[$key])) {
+                    $tracks[$key] = $names;
+                }
             }
         }
 
@@ -197,7 +201,9 @@ class StudentCertificatesController extends Controller
             $generatedAbs[] = $pdfAbs;
         }
 
-        $zipRel = 'tmp_uploads/certs_'.date('Ymd_His').'.zip';
+        // Name ZIP as: track_name_timestamp.zip
+        $trackSlug = \Str::slug($pair['en'] ?: $pair['ar'], '_');
+        $zipRel = 'tmp_uploads/'.$trackSlug.'_'.date('Ymd_His').'.zip';
         $zipAbs = Storage::disk('local')->path($zipRel);
         @mkdir(dirname($zipAbs), 0775, true);
 
@@ -216,6 +222,9 @@ class StudentCertificatesController extends Controller
         $url = URL::temporarySignedRoute('download', now()->addMinutes(60), [
             'p' => Crypt::encryptString($zipRel)
         ]);
+
+        // Log certificate generation
+        ActivityLogService::logGenerate($pair['ar'] ?? $pair['en'], count($generatedAbs), 'pdf');
 
         return back()->with(['success'=>'تم إنشاء شهادات الطلاب وضغطها بنجاح.', 'download_url'=>$url]);
     }
@@ -368,6 +377,13 @@ class StudentCertificatesController extends Controller
             ]
         );
 
+        // Log settings save
+        ActivityLogService::logSaveSettings('إعدادات شهادات الطلاب', $track, null, [
+            'track_key' => $trackKey,
+            'track_name' => $track->name_ar,
+            'gender' => $gender,
+        ]);
+
         // Return JSON for AJAX requests
         if ($request->wantsJson() || $request->header('X-Requested-With') === 'fetch') {
             return response()->json([
@@ -411,12 +427,9 @@ class StudentCertificatesController extends Controller
             'institution_id' => $user->institution_id, // Assign to user's institution
         ]);
 
-        // Log track creation for debugging
-        \Log::info('Student track created', [
-            'track_id' => $track->id,
-            'track_key' => $track->key,
-            'name_ar' => $track->name_ar,
-            'name_en' => $track->name_en,
+        // Log track creation
+        ActivityLogService::logCreate($track, 'إضافة مسار طلاب جديد', [
+            'track_type' => 'student',
         ]);
 
         // Upload certificate templates
@@ -536,6 +549,9 @@ class StudentCertificatesController extends Controller
             'female_certificate' => 'nullable|image|mimes:jpeg,jpg,png|max:10240',
         ]);
 
+        // Store old values for logging
+        $oldValues = $track->toArray();
+
         // Update track name
         $track->update([
             'name_ar' => $request->input('name_ar'),
@@ -574,6 +590,15 @@ class StudentCertificatesController extends Controller
                 ->update(['certificate_bg' => $femalePath]);
         }
 
+        // Log track update
+        ActivityLogService::logUpdate($track, $oldValues, 'تعديل مسار طلاب', [
+            'track_type' => 'student',
+            'certificates_updated' => [
+                'male' => $request->hasFile('male_certificate'),
+                'female' => $request->hasFile('female_certificate'),
+            ],
+        ]);
+
         return back()->with('success', 'تم تعديل المسار بنجاح.');
     }
 
@@ -599,6 +624,11 @@ class StudentCertificatesController extends Controller
                 @unlink($certPath);
             }
         }
+
+        // Log track deletion before deleting
+        ActivityLogService::logDelete($track, 'حذف مسار طلاب', [
+            'track_type' => 'student',
+        ]);
 
         // Delete track (cascade will delete student_settings)
         $track->delete();
@@ -953,7 +983,9 @@ class StudentCertificatesController extends Controller
 
         \Log::info("Image generation completed: {$count} certificates generated successfully");
 
-        $zipRel = 'tmp_uploads/certs_images_'.date('Ymd_His').'.zip';
+        // Name ZIP as: track_name_timestamp.zip
+        $trackSlug = \Str::slug($pair['en'] ?: $pair['ar'], '_');
+        $zipRel = 'tmp_uploads/'.$trackSlug.'_images_'.date('Ymd_His').'.zip';
         $zipAbs = Storage::disk('local')->path($zipRel);
         @mkdir(dirname($zipAbs), 0775, true);
 
@@ -977,6 +1009,9 @@ class StudentCertificatesController extends Controller
         $url = URL::temporarySignedRoute('download', now()->addMinutes(60), [
             'p' => Crypt::encryptString($zipRel)
         ]);
+
+        // Log certificate generation
+        ActivityLogService::logGenerate($pair['ar'] ?? $pair['en'], $count, 'image');
 
         // Return JSON for AJAX requests
         if ($request->wantsJson() || $request->header('X-Requested-With') === 'fetch') {
@@ -1019,11 +1054,14 @@ class StudentCertificatesController extends Controller
             }
         }
 
-        // Merge config tracks
-        $configTracks = config('certificates.tracks_student', []);
-        foreach ($configTracks as $key => $names) {
-            if (!isset($tracks[$key])) {
-                $tracks[$key] = $names;
+        // Merge config tracks - only for super users
+        // Regular institution users should only see their institution's database tracks
+        if ($user->isSuperUser()) {
+            $configTracks = config('certificates.tracks_student', []);
+            foreach ($configTracks as $key => $names) {
+                if (!isset($tracks[$key])) {
+                    $tracks[$key] = $names;
+                }
             }
         }
 
@@ -1135,7 +1173,9 @@ class StudentCertificatesController extends Controller
 
         \Log::info("Image generation completed (studentimg): {$count} certificates generated successfully");
 
-        $zipRel = 'tmp_uploads/certs_images_'.date('Ymd_His').'.zip';
+        // Name ZIP as: track_name_timestamp.zip
+        $trackSlug = \Str::slug($pair['en'] ?: $pair['ar'], '_');
+        $zipRel = 'tmp_uploads/'.$trackSlug.'_images_'.date('Ymd_His').'.zip';
         $zipAbs = Storage::disk('local')->path($zipRel);
         @mkdir(dirname($zipAbs), 0775, true);
 
@@ -1158,6 +1198,9 @@ class StudentCertificatesController extends Controller
         $url = URL::temporarySignedRoute('download', now()->addMinutes(60), [
             'p' => Crypt::encryptString($zipRel)
         ]);
+
+        // Log certificate generation
+        ActivityLogService::logGenerate($pair['ar'] ?? $pair['en'], $count, 'image');
 
         if ($request->wantsJson() || $request->header('X-Requested-With') === 'fetch') {
             return response()->json([
@@ -1287,6 +1330,13 @@ class StudentCertificatesController extends Controller
                 'notes'           => $request->input('notes'),
             ]
         );
+
+        // Log settings save
+        ActivityLogService::logSaveSettings('إعدادات صور شهادات الطلاب', $track, null, [
+            'track_key' => $trackKey,
+            'track_name' => $track->name_ar,
+            'gender' => $gender,
+        ]);
 
         if ($request->wantsJson() || $request->header('X-Requested-With') === 'fetch') {
             return response()->json([

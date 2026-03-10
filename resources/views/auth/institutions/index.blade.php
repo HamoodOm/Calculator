@@ -21,6 +21,16 @@
     </div>
 @endif
 
+@if ($errors->any())
+    <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded mb-6">
+        <ul class="list-disc list-inside">
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
 <div class="bg-white rounded-lg shadow overflow-hidden">
     <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">

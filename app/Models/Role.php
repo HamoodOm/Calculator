@@ -41,16 +41,19 @@ class Role extends Model
 
     /**
      * Role hierarchy levels (lower number = higher privilege)
+     * Super users: 0-10 (reserved for special roles)
+     * Admins: 20-29 (with 5 step difference for customization)
+     * Users: 30-39 (with 5 step difference for customization)
      */
     const ROLE_LEVELS = [
         self::SUPER_ADMIN => 0,
-        self::DEVELOPER => 1,
-        self::TS_ADMIN => 2,
-        self::T_ADMIN => 3,
-        self::S_ADMIN => 3,
-        self::TS_USER => 4,
-        self::T_USER => 5,
-        self::S_USER => 5,
+        self::DEVELOPER => 5,
+        self::TS_ADMIN => 20,
+        self::T_ADMIN => 25,
+        self::S_ADMIN => 25,
+        self::TS_USER => 30,
+        self::T_USER => 35,
+        self::S_USER => 35,
     ];
 
     /**

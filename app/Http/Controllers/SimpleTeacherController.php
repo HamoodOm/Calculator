@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
+use App\Services\ActivityLogService;
 
 class SimpleTeacherController extends Controller
 {
@@ -21,13 +22,20 @@ class SimpleTeacherController extends Controller
         // Clear photo session on page load (fresh start)
         session()->forget('simple_teacher_photo');
 
+        $user = auth()->user();
+
         // Load teacher tracks from DB (only tracks NOT starting with 's_')
-        $allTracks = Track::where('active', true)->get();
+        // Apply institution-based access control
+        $allTracks = Track::where('active', true)
+            ->accessibleBy($user)
+            ->get();
         $tracks = $allTracks->filter(function ($track) {
             return strpos($track->key, 's_') !== 0; // Exclude student tracks
         });
 
-        if ($tracks->isEmpty()) {
+        // Fallback to config tracks only for super users
+        // Regular institution users should only see their institution's database tracks
+        if ($tracks->isEmpty() && $user->isSuperUser()) {
             $tracks = collect(config('certificates.tracks_teacher'))->map(function ($v, $k) {
                 return (object) ['key' => $k, 'name_ar' => $v['ar'], 'name_en' => $v['en']];
             });
@@ -219,7 +227,10 @@ class SimpleTeacherController extends Controller
         @unlink($imageAbs);
 
         // Move PDF to storage and create download URL
-        $pdfName = 'teacher_certificate_' . time() . '.pdf';
+        // Name format: user_name_track_name.pdf (preserves Arabic characters)
+        $namePart = $this->safeFilename($validated['name_ar'] ?: $validated['name_en'], 'شهادة');
+        $trackPart = $this->safeFilename($trackNames['ar'] ?: $trackNames['en'], 'مسار');
+        $pdfName = $namePart . '_' . $trackPart . '.pdf';
         $pdfRel = 'certificates/' . $pdfName;
         $pdfDestAbs = Storage::disk('local')->path($pdfRel);
 
@@ -230,6 +241,15 @@ class SimpleTeacherController extends Controller
         }
 
         rename($pdfAbs, $pdfDestAbs);
+
+        // Log certificate generation
+        ActivityLogService::logGenerate($trackNames['ar'] ?? $trackNames['en'], 1, 'pdf', [
+            'recipient_name' => $validated['name_ar'] ?: $validated['name_en'],
+            'track_key' => $trackKey,
+            'gender' => $gender,
+            'type' => 'teacher',
+            'interface' => 'simple',
+        ]);
 
         $url = URL::temporarySignedRoute('download', now()->addMinutes(60), [
             'p' => Crypt::encryptString($pdfRel),
@@ -472,6 +492,15 @@ class SimpleTeacherController extends Controller
             $photoAbs
         );
 
+        // Log certificate generation
+        ActivityLogService::logGenerate($trackNames['ar'] ?? $trackNames['en'], 1, 'image', [
+            'recipient_name' => $validated['name_ar'] ?: $validated['name_en'],
+            'track_key' => $trackKey,
+            'gender' => $gender,
+            'type' => 'teacher',
+            'interface' => 'simple',
+        ]);
+
         $url = URL::temporarySignedRoute('download', now()->addMinutes(60), [
             'p' => Crypt::encryptString($imageRel),
         ]);
@@ -529,5 +558,25 @@ class SimpleTeacherController extends Controller
         $mpdf->Output($pdfPath, \Mpdf\Output\Destination::FILE);
 
         return $pdfPath;
+    }
+
+    /**
+     * Create a safe filename that preserves Arabic characters.
+     * Only removes characters that are invalid in filenames.
+     *
+     * @param string $name The name to sanitize
+     * @param string $fallback Fallback if name is empty
+     * @return string Safe filename
+     */
+    private function safeFilename(string $name, string $fallback = 'شهادة'): string
+    {
+        $name = trim($name) ?: $fallback;
+        // Remove invalid filename characters: \ / : * ? " < > | and newlines
+        $name = preg_replace('/[\\\\\\/\\:\\*\\?\\"\\<\\>\\|\\r\\n]+/u', ' ', $name);
+        // Collapse multiple spaces
+        $name = preg_replace('/\\s+/u', ' ', $name);
+        // Limit length
+        $name = mb_substr($name, 0, 80, 'UTF-8');
+        return trim($name);
     }
 }

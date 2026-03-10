@@ -19,13 +19,28 @@ class EnsureUserIsActive
      */
     public function handle(Request $request, Closure $next)
     {
-        if (Auth::check() && !Auth::user()->is_active) {
-            Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+        if (Auth::check()) {
+            $user = Auth::user();
 
-            return redirect()->route('login')
-                ->withErrors(['email' => 'تم تعطيل حسابك. يرجى التواصل مع المسؤول.']);
+            // Check if user account is active
+            if (!$user->is_active) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return redirect()->route('login')
+                    ->withErrors(['email' => 'تم تعطيل حسابك. يرجى التواصل مع المسؤول.']);
+            }
+
+            // Check if user's institution is active (skip for super users)
+            if (!$user->isSuperUser() && $user->institution && !$user->institution->is_active) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return redirect()->route('login')
+                    ->withErrors(['email' => 'تم تعطيل المؤسسة التابع لها حسابك. يرجى التواصل مع المسؤول.']);
+            }
         }
 
         return $next($request);

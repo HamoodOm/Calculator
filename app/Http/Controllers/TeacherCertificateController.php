@@ -6,6 +6,7 @@ use App\Http\Requests\TeacherCertificateRequest;
 use App\Services\CertificateService;
 use App\Services\TemplateResolver;
 use App\Services\FontRegistry;
+use App\Services\ActivityLogService;
 use App\Support\PrintFlags;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
@@ -323,6 +324,14 @@ if (is_array($inWeight = $request->input('style.weight_per'))) {
             abort(404);
         }
 
-        return Storage::disk('local')->download($relative, basename($relative));
+        $filename = basename($relative);
+        $extension = pathinfo($filename, PATHINFO_EXTENSION);
+
+        // Log the download
+        ActivityLogService::logDownload($filename, $extension, [
+            'file_path' => $relative,
+        ]);
+
+        return Storage::disk('local')->download($relative, $filename);
     }
 }

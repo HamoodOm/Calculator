@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate API Testing Platform</title>
+    <link rel="stylesheet" href="css/styles.css?v=2">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h1 class="sidebar-logo">API Tester</h1>
+            <span class="sidebar-version">v1.0</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-section="dashboard">
+                <span class="nav-icon">&#9632;</span>
+                Dashboard
+            </a>
+            <a href="#" class="nav-item" data-section="config">
+                <span class="nav-icon">&#9881;</span>
+                Configuration
+            </a>
+
+            <div class="nav-group-label">Endpoint Testers</div>
+            <a href="#" class="nav-item" data-section="endpoint-status">
+                <span class="nav-icon">&#10004;</span>
+                Status Check
+            </a>
+            <a href="#" class="nav-item" data-section="endpoint-generate">
+                <span class="nav-icon">&#10010;</span>
+                Generate Certificate
+            </a>
+            <a href="#" class="nav-item" data-section="endpoint-verify">
+                <span class="nav-icon">&#128270;</span>
+                Verify Certificate
+            </a>
+            <a href="#" class="nav-item" data-section="endpoint-courses">
+                <span class="nav-icon">&#128218;</span>
+                List Courses
+            </a>
+            <a href="#" class="nav-item" data-section="endpoint-stats">
+                <span class="nav-icon">&#128200;</span>
+                Statistics
+            </a>
+
+            <div class="nav-group-label">Test Suites</div>
+            <a href="#" class="nav-item" data-section="suite-auth">
+                <span class="nav-icon">&#128274;</span>
+                Authentication Tests
+            </a>
+            <a href="#" class="nav-item" data-section="suite-validation">
+                <span class="nav-icon">&#9888;</span>
+                Validation Tests
+            </a>
+            <a href="#" class="nav-item" data-section="suite-integration">
+                <span class="nav-icon">&#128279;</span>
+                Integration Tests
+            </a>
+            <a href="#" class="nav-item" data-section="suite-fep">
+                <span class="nav-icon">&#127891;</span>
+                FEP Workflow
+            </a>
+            <a href="#" class="nav-item" data-section="suite-all">
+                <span class="nav-icon">&#9654;</span>
+                Run All Tests
+            </a>
+
+            <div class="nav-group-label">Tools</div>
+            <a href="#" class="nav-item" data-section="history">
+                <span class="nav-icon">&#128336;</span>
+                Request History
+            </a>
+            <a href="#" class="nav-item" data-section="webhook-tester">
+                <span class="nav-icon">&#128232;</span>
+                Webhook Tester
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <header class="topbar">
+            <button class="sidebar-toggle" id="sidebarToggle">&#9776;</button>
+            <div class="topbar-title" id="topbarTitle">Dashboard</div>
+            <div class="topbar-actions">
+                <span class="connection-status" id="connectionStatus">
+                    <span class="status-dot disconnected"></span>
+                    Not Connected
+                </span>
+            </div>
+        </header>
+
+        <!-- Content Sections -->
+        <div class="content-wrapper">
+
+            <!-- Dashboard Section -->
+            <section class="section active" id="section-dashboard">
+                <div class="section-header">
+                    <h2>API Testing Dashboard</h2>
+                    <p>Certificate Platform API - Test & Validate all endpoints before integration</p>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-total-tests">0</div>
+                        <div class="stat-label">Total Tests Run</div>
+                    </div>
+                    <div class="stat-card stat-card-success">
+                        <div class="stat-value" id="stat-passed">0</div>
+                        <div class="stat-label">Passed</div>
+                    </div>
+                    <div class="stat-card stat-card-danger">
+                        <div class="stat-value" id="stat-failed">0</div>
+                        <div class="stat-label">Failed</div>
+                    </div>
+                    <div class="stat-card stat-card-warning">
+                        <div class="stat-value" id="stat-avg-time">0ms</div>
+                        <div class="stat-label">Avg Response Time</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Quick Actions</h3>
+                        </div>
+                        <div class="card-body">
+                            <button class="btn btn-primary btn-block" onclick="App.navigateTo('config')">Configure API Connection</button>
+                            <button class="btn btn-success btn-block" onclick="App.runQuickHealthCheck()">Quick Health Check</button>
+                            <button class="btn btn-info btn-block" onclick="App.navigateTo('suite-all')">Run All Test Suites</button>
+                            <button class="btn btn-warning btn-block" onclick="App.navigateTo('suite-fep')">FEP Workflow Test</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Recent Test Results</h3>
+                        </div>
+                        <div class="card-body" id="dashboard-recent-results">
+                            <p class="text-muted">No tests run yet. Configure your API connection and run some tests.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>API Endpoints Overview</h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Method</th>
+                                    <th>Endpoint</th>
+                                    <th>Description</th>
+                                    <th>Auth Required</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="method-badge method-get">GET</span></td>
+                                    <td><code>/api/v1/status</code></td>
+                                    <td>Check API status</td>
+                                    <td>No</td>
+                                    <td><button class="btn btn-sm btn-outline" onclick="App.navigateTo('endpoint-status')">Test</button></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="method-badge method-post">POST</span></td>
+                                    <td><code>/api/v1/certificates/generate</code></td>
+                                    <td>Generate certificate</td>
+                                    <td>Yes</td>
+                                    <td><button class="btn btn-sm btn-outline" onclick="App.navigateTo('endpoint-generate')">Test</button></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="method-badge method-get">GET</span></td>
+                                    <td><code>/api/v1/certificates/{id}/verify</code></td>
+                                    <td>Verify certificate</td>
+                                    <td>Yes</td>
+                                    <td><button class="btn btn-sm btn-outline" onclick="App.navigateTo('endpoint-verify')">Test</button></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="method-badge method-get">GET</span></td>
+                                    <td><code>/api/v1/courses</code></td>
+                                    <td>List mapped courses</td>
+                                    <td>Yes</td>
+                                    <td><button class="btn btn-sm btn-outline" onclick="App.navigateTo('endpoint-courses')">Test</button></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="method-badge method-get">GET</span></td>
+                                    <td><code>/api/v1/stats</code></td>
+                                    <td>Get statistics</td>
+                                    <td>Yes</td>
+                                    <td><button class="btn btn-sm btn-outline" onclick="App.navigateTo('endpoint-stats')">Test</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Configuration Section -->
+            <section class="section" id="section-config">
+                <div class="section-header">
+                    <h2>API Configuration</h2>
+                    <p>Configure your API connection settings and credentials</p>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Connection Settings</h3></div>
+                    <div class="card-body">
+                        <form id="configForm">
+                            <div class="form-group">
+                                <label for="config-base-url">Base URL</label>
+                                <input type="url" id="config-base-url" class="form-control" placeholder="https://certificates.example.com" value="http://localhost:8000">
+                                <small class="form-hint">The base URL of your certificate platform (no trailing slash)</small>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="config-api-key">API Key</label>
+                                    <input type="text" id="config-api-key" class="form-control" placeholder="ck_your_api_key">
+                                </div>
+                                <div class="form-group">
+                                    <label for="config-api-secret">API Secret</label>
+                                    <div class="input-group">
+                                        <input type="password" id="config-api-secret" class="form-control" placeholder="cs_your_api_secret">
+                                        <button type="button" class="btn btn-outline input-group-btn" onclick="App.toggleSecretVisibility()">Show</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="config-timeout">Request Timeout (ms)</label>
+                                    <input type="number" id="config-timeout" class="form-control" value="30000" min="1000" max="120000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="config-retries">Max Retries</label>
+                                    <input type="number" id="config-retries" class="form-control" value="0" min="0" max="5">
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Save Configuration</button>
+                                <button type="button" class="btn btn-success" onclick="App.testConnection()">Test Connection</button>
+                                <button type="button" class="btn btn-outline" onclick="App.clearConfig()">Reset</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="card" id="connection-test-result" style="display:none;">
+                    <div class="card-header"><h3>Connection Test Result</h3></div>
+                    <div class="card-body" id="connection-test-body"></div>
+                </div>
+            </section>
+
+            <!-- Endpoint: Status Check -->
+            <section class="section" id="section-endpoint-status">
+                <div class="section-header">
+                    <h2><span class="method-badge method-get">GET</span> Status Check</h2>
+                    <p><code>/api/v1/status</code> - Check if the API is operational (no authentication required)</p>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Request</h3></div>
+                    <div class="card-body">
+                        <p>This endpoint requires no parameters or authentication.</p>
+                        <button class="btn btn-primary" onclick="App.executeEndpoint('status')">Send Request</button>
+                    </div>
+                </div>
+                <div class="card" id="response-status" style="display:none;">
+                    <div class="card-header">
+                        <h3>Response</h3>
+                        <span class="response-meta" id="response-meta-status"></span>
+                    </div>
+                    <div class="card-body">
+                        <pre class="response-body" id="response-body-status"></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Endpoint: Generate Certificate -->
+            <section class="section" id="section-endpoint-generate">
+                <div class="section-header">
+                    <h2><span class="method-badge method-post">POST</span> Generate Certificate</h2>
+                    <p><code>/api/v1/certificates/generate</code> - Generate a certificate for a course completion</p>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Request Body</h3></div>
+                    <div class="card-body">
+                        <form id="generateForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="gen-course-id">Course ID *</label>
+                                    <input type="text" id="gen-course-id" class="form-control" placeholder="course-python-101" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="gen-external-id">External ID</label>
+                                    <input type="text" id="gen-external-id" class="form-control" placeholder="user-12345">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="gen-recipient-name-ar">Recipient Name (Arabic) *</label>
+                                    <input type="text" id="gen-recipient-name-ar" class="form-control" dir="rtl" placeholder="محمد أحمد علي" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="gen-recipient-name-en">Recipient Name (English) *</label>
+                                    <input type="text" id="gen-recipient-name-en" class="form-control" placeholder="Mohammed Ahmed Ali" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="gen-gender">Gender</label>
+                                    <select id="gen-gender" class="form-control">
+                                        <option value="">-- Use Course Default --</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="gen-completion-date">Completion Date</label>
+                                    <input type="date" id="gen-completion-date" class="form-control">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="gen-output-format">Output Format</label>
+                                    <select id="gen-output-format" class="form-control">
+                                        <option value="pdf">PDF</option>
+                                        <option value="image">Image</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="gen-callback-url">Callback URL (Webhook)</label>
+                                    <input type="url" id="gen-callback-url" class="form-control" placeholder="https://your-platform.com/webhook">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="gen-custom-fields">Custom Fields (JSON)</label>
+                                <textarea id="gen-custom-fields" class="form-control" rows="3" placeholder='{"field1": "value1"}'></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Generate Certificate</button>
+                                <button type="button" class="btn btn-outline" onclick="App.fillSampleGenerateData()">Fill Sample Data</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="card" id="response-generate" style="display:none;">
+                    <div class="card-header">
+                        <h3>Response</h3>
+                        <span class="response-meta" id="response-meta-generate"></span>
+                    </div>
+                    <div class="card-body">
+                        <pre class="response-body" id="response-body-generate"></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Endpoint: Verify Certificate -->
+            <section class="section" id="section-endpoint-verify">
+                <div class="section-header">
+                    <h2><span class="method-badge method-get">GET</span> Verify Certificate</h2>
+                    <p><code>/api/v1/certificates/{id}/verify</code> - Verify certificate authenticity</p>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Request Parameters</h3></div>
+                    <div class="card-body">
+                        <form id="verifyForm">
+                            <div class="form-group">
+                                <label for="verify-cert-id">Certificate ID *</label>
+                                <input type="text" id="verify-cert-id" class="form-control" placeholder="cert_abc123xyz" required>
+                                <small class="form-hint">The certificate ID returned from the generate endpoint</small>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Verify Certificate</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="card" id="response-verify" style="display:none;">
+                    <div class="card-header">
+                        <h3>Response</h3>
+                        <span class="response-meta" id="response-meta-verify"></span>
+                    </div>
+                    <div class="card-body">
+                        <pre class="response-body" id="response-body-verify"></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Endpoint: List Courses -->
+            <section class="section" id="section-endpoint-courses">
+                <div class="section-header">
+                    <h2><span class="method-badge method-get">GET</span> List Courses</h2>
+                    <p><code>/api/v1/courses</code> - List all courses mapped to your API client</p>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Query Parameters</h3></div>
+                    <div class="card-body">
+                        <form id="coursesForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="courses-active">Active Only</label>
+                                    <select id="courses-active" class="form-control">
+                                        <option value="">-- All --</option>
+                                        <option value="true">Active Only</option>
+                                        <option value="false">Inactive Only</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="courses-page">Page</label>
+                                    <input type="number" id="courses-page" class="form-control" value="1" min="1">
+                                </div>
+                                <div class="form-group">
+                                    <label for="courses-per-page">Per Page</label>
+                                    <input type="number" id="courses-per-page" class="form-control" value="20" min="1" max="100">
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Fetch Courses</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="card" id="response-courses" style="display:none;">
+                    <div class="card-header">
+                        <h3>Response</h3>
+                        <span class="response-meta" id="response-meta-courses"></span>
+                    </div>
+                    <div class="card-body">
+                        <pre class="response-body" id="response-body-courses"></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Endpoint: Statistics -->
+            <section class="section" id="section-endpoint-stats">
+                <div class="section-header">
+                    <h2><span class="method-badge method-get">GET</span> Statistics</h2>
+                    <p><code>/api/v1/stats</code> - Get usage statistics for your API client</p>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Query Parameters</h3></div>
+                    <div class="card-body">
+                        <form id="statsForm">
+                            <div class="form-group">
+                                <label for="stats-period">Period</label>
+                                <select id="stats-period" class="form-control">
+                                    <option value="all">All Time</option>
+                                    <option value="today">Today</option>
+                                    <option value="week">This Week</option>
+                                    <option value="month">This Month</option>
+                                    <option value="year">This Year</option>
+                                </select>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Fetch Statistics</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="card" id="response-stats" style="display:none;">
+                    <div class="card-header">
+                        <h3>Response</h3>
+                        <span class="response-meta" id="response-meta-stats"></span>
+                    </div>
+                    <div class="card-body">
+                        <pre class="response-body" id="response-body-stats"></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Test Suite: Authentication -->
+            <section class="section" id="section-suite-auth">
+                <div class="section-header">
+                    <h2>Authentication Test Suite</h2>
+                    <p>Validates API key/secret authentication, invalid credentials, missing headers, and scope enforcement</p>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Test Cases</h3>
+                        <button class="btn btn-primary btn-sm" onclick="App.runTestSuite('auth')">Run All</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="test-list" id="test-list-auth"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Test Suite: Validation -->
+            <section class="section" id="section-suite-validation">
+                <div class="section-header">
+                    <h2>Validation Test Suite</h2>
+                    <p>Tests request validation, required fields, data formats, and boundary conditions</p>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Test Cases</h3>
+                        <button class="btn btn-primary btn-sm" onclick="App.runTestSuite('validation')">Run All</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="test-list" id="test-list-validation"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Test Suite: Integration -->
+            <section class="section" id="section-suite-integration">
+                <div class="section-header">
+                    <h2>Integration Test Suite</h2>
+                    <p>End-to-end tests for certificate lifecycle: generate, verify, list courses, statistics</p>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Test Cases</h3>
+                        <button class="btn btn-primary btn-sm" onclick="App.runTestSuite('integration')">Run All</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="test-list" id="test-list-integration"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Test Suite: FEP Workflow -->
+            <section class="section" id="section-suite-fep">
+                <div class="section-header">
+                    <h2>FEP Platform Workflow Test</h2>
+                    <p>Simulates the complete FEP platform integration: user completes course, certificate is generated and verified</p>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Workflow Steps</h3>
+                        <button class="btn btn-primary btn-sm" onclick="App.runTestSuite('fep')">Run Workflow</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="workflow-info">
+                            <p>This test simulates the complete flow when a user finishes a course on the FEP platform:</p>
+                            <ol class="workflow-steps-description">
+                                <li><strong>Check API Health</strong> - Verify the certificate API is operational</li>
+                                <li><strong>Fetch Available Courses</strong> - List courses mapped to the FEP platform</li>
+                                <li><strong>Generate Certificate (Male)</strong> - User completes course, generate certificate for a male student</li>
+                                <li><strong>Generate Certificate (Female)</strong> - User completes course, generate certificate for a female student</li>
+                                <li><strong>Verify Generated Certificate</strong> - Confirm the certificate is valid and authentic</li>
+                                <li><strong>Check Updated Statistics</strong> - Verify stats reflect the new certificates</li>
+                                <li><strong>Generate with English Name</strong> - Test bilingual certificate generation</li>
+                                <li><strong>Generate Image Format</strong> - Test image output instead of PDF</li>
+                            </ol>
+                        </div>
+                        <div class="test-list" id="test-list-fep"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Run All Tests -->
+            <section class="section" id="section-suite-all">
+                <div class="section-header">
+                    <h2>Run All Test Suites</h2>
+                    <p>Execute all test suites sequentially and get a comprehensive report</p>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Test Execution</h3>
+                        <div>
+                            <button class="btn btn-primary btn-sm" onclick="App.runAllSuites()">Run All Suites</button>
+                            <button class="btn btn-outline btn-sm" onclick="App.clearAllResults()">Clear Results</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress-bar-container" id="all-tests-progress" style="display:none;">
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill" id="all-tests-progress-fill"></div>
+                            </div>
+                            <span class="progress-text" id="all-tests-progress-text">0%</span>
+                        </div>
+                        <div id="all-tests-summary" style="display:none;">
+                            <div class="stats-grid stats-grid-sm">
+                                <div class="stat-card"><div class="stat-value" id="all-total">0</div><div class="stat-label">Total</div></div>
+                                <div class="stat-card stat-card-success"><div class="stat-value" id="all-passed">0</div><div class="stat-label">Passed</div></div>
+                                <div class="stat-card stat-card-danger"><div class="stat-value" id="all-failed">0</div><div class="stat-label">Failed</div></div>
+                                <div class="stat-card stat-card-warning"><div class="stat-value" id="all-skipped">0</div><div class="stat-label">Skipped</div></div>
+                            </div>
+                        </div>
+                        <div class="test-list" id="test-list-all"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Request History -->
+            <section class="section" id="section-history">
+                <div class="section-header">
+                    <h2>Request History</h2>
+                    <p>View all API requests made during this session</p>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>History</h3>
+                        <div>
+                            <button class="btn btn-outline btn-sm" onclick="App.exportHistory()">Export JSON</button>
+                            <button class="btn btn-danger btn-sm" onclick="App.clearHistory()">Clear</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="history-list">
+                            <p class="text-muted">No requests recorded yet.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Webhook Tester -->
+            <section class="section" id="section-webhook-tester">
+                <div class="section-header">
+                    <h2>Webhook Tester</h2>
+                    <p>Test webhook signature verification and payload handling</p>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Webhook Signature Verifier</h3></div>
+                    <div class="card-body">
+                        <form id="webhookForm">
+                            <div class="form-group">
+                                <label for="webhook-secret">Webhook Secret</label>
+                                <input type="text" id="webhook-secret" class="form-control" placeholder="your_webhook_secret">
+                            </div>
+                            <div class="form-group">
+                                <label for="webhook-payload">Payload (JSON)</label>
+                                <textarea id="webhook-payload" class="form-control" rows="8" placeholder='{"event":"certificate.generated","data":{}}'></textarea>
+                                <button type="button" class="btn btn-outline btn-sm" style="margin-top:0.5rem;" onclick="App.fillSampleWebhook()">Fill Sample Payload</button>
+                            </div>
+                            <div class="form-group">
+                                <label for="webhook-signature">Signature Header (X-Webhook-Signature)</label>
+                                <input type="text" id="webhook-signature" class="form-control" placeholder="sha256=abc123...">
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Verify Signature</button>
+                                <button type="button" class="btn btn-success" onclick="App.generateWebhookSignature()">Generate Correct Signature</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="card" id="webhook-result" style="display:none;">
+                    <div class="card-header"><h3>Verification Result</h3></div>
+                    <div class="card-body" id="webhook-result-body"></div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Scripts (cache-bust with version to prevent stale JS) -->
+    <script src="js/api-client.js?v=2"></script>
+    <script src="js/test-runner.js?v=2"></script>
+    <script src="js/test-suites.js?v=2"></script>
+    <script src="js/app.js?v=2"></script>
+</body>
+</html>

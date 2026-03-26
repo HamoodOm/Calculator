@@ -1,0 +1,16 @@
+# Deny direct access to template images - require authentication via Laravel
+# For Apache: redirect all image requests through the secure Laravel route
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Check if user is authenticated via session cookie - if not, redirect to secure route
+    # All template images must be served via /secure/template-image/ route
+    RewriteRule ^(.+)$ /secure/template-image/$1 [L,R=302]
+</IfModule>
+
+# For servers without mod_rewrite, deny all access
+<IfModule !mod_rewrite.c>
+    Order deny,allow
+    Deny from all
+</IfModule>

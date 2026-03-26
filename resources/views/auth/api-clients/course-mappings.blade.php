@@ -26,7 +26,7 @@
 @endif
 
 <!-- Add New Mapping Form -->
-@if(auth()->user()->hasPermission(\App\Models\Permission::API_CLIENTS_MANAGE))
+@if(auth()->user()->hasAnyPermission([\App\Models\Permission::API_CLIENTS_MAPPINGS_CREATE, \App\Models\Permission::API_CLIENTS_MANAGE]))
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="px-6 py-4 border-b border-gray-200">
         <h2 class="text-lg font-bold text-gray-800">إضافة ربط جديد</h2>
@@ -182,8 +182,8 @@
                         @endif
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        @if(auth()->user()->hasPermission(\App\Models\Permission::API_CLIENTS_MANAGE))
                         <div class="flex items-center gap-2">
+                            @if(auth()->user()->hasAnyPermission([\App\Models\Permission::API_CLIENTS_MAPPINGS_EDIT, \App\Models\Permission::API_CLIENTS_MANAGE]))
                             <!-- Toggle -->
                             <form action="{{ route('api-clients.mappings.toggle', [$apiClient, $mapping]) }}" method="POST" class="inline">
                                 @csrf
@@ -207,7 +207,9 @@
                                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                                 </svg>
                             </button>
+                            @endif
 
+                            @if(auth()->user()->hasAnyPermission([\App\Models\Permission::API_CLIENTS_MAPPINGS_DELETE, \App\Models\Permission::API_CLIENTS_MANAGE]))
                             <!-- Delete -->
                             <form action="{{ route('api-clients.mappings.destroy', [$apiClient, $mapping]) }}" method="POST" class="inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا الربط؟')">
                                 @csrf
@@ -218,8 +220,8 @@
                                     </svg>
                                 </button>
                             </form>
+                            @endif
                         </div>
-                        @endif
                     </td>
                 </tr>
             @endforeach

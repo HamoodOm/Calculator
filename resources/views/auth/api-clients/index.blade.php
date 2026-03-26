@@ -8,7 +8,7 @@
         <h1 class="text-2xl font-bold text-gray-800">إدارة عملاء API</h1>
         <p class="text-gray-600 mt-1">إدارة المنصات الخارجية المتصلة بنظام الشهادات</p>
     </div>
-    @if(auth()->user()->hasPermission(\App\Models\Permission::API_CLIENTS_MANAGE))
+    @if(auth()->user()->hasAnyPermission([\App\Models\Permission::API_CLIENTS_CREATE, \App\Models\Permission::API_CLIENTS_MANAGE]))
     <a href="{{ route('api-clients.create') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
@@ -132,13 +132,15 @@
                                 </svg>
                             </a>
 
-                            @if(auth()->user()->hasPermission(\App\Models\Permission::API_CLIENTS_MANAGE))
+                            @if(auth()->user()->hasAnyPermission([\App\Models\Permission::API_CLIENTS_MAPPINGS_VIEW, \App\Models\Permission::API_CLIENTS_VIEW, \App\Models\Permission::API_CLIENTS_MANAGE]))
                             <a href="{{ route('api-clients.mappings', $client) }}" class="text-purple-600 hover:text-purple-900" title="ربط الدورات">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                     <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
                                 </svg>
                             </a>
+                            @endif
 
+                            @if(auth()->user()->hasAnyPermission([\App\Models\Permission::API_CLIENTS_EDIT, \App\Models\Permission::API_CLIENTS_MANAGE]))
                             <form action="{{ route('api-clients.toggle', $client) }}" method="POST" class="inline">
                                 @csrf
                                 @method('PATCH')
@@ -160,7 +162,9 @@
                                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                                 </svg>
                             </a>
+                            @endif
 
+                            @if(auth()->user()->hasAnyPermission([\App\Models\Permission::API_CLIENTS_DELETE, \App\Models\Permission::API_CLIENTS_MANAGE]))
                             <form action="{{ route('api-clients.destroy', $client) }}" method="POST" class="inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا العميل؟ سيتم حذف جميع البيانات المرتبطة.')">
                                 @csrf
                                 @method('DELETE')

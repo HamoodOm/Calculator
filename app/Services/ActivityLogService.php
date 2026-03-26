@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ActivityLog;
+use App\Models\ApiClient;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -31,6 +32,21 @@ class ActivityLogService
     ): ActivityLog {
         $user = Auth::user();
 
+        // Try to get API client context if no authenticated user (API request)
+        $apiClient = null;
+        $institutionId = $user?->institution_id;
+        if (!$user) {
+            $apiClient = request()->attributes->get('api_client');
+            if ($apiClient instanceof ApiClient) {
+                $institutionId = $apiClient->institution_id;
+                // Merge api_client info into metadata so it shows in logs
+                $metadata = array_merge($metadata ?? [], [
+                    'api_client_id' => $apiClient->id,
+                    'api_client_name' => $apiClient->name,
+                ]);
+            }
+        }
+
         return ActivityLog::create([
             'user_id' => $user?->id,
             'user_name' => $user?->name,
@@ -44,7 +60,7 @@ class ActivityLogService
             'metadata' => $metadata,
             'ip_address' => Request::ip(),
             'user_agent' => Request::userAgent(),
-            'institution_id' => $user?->institution_id,
+            'institution_id' => $institutionId,
         ]);
     }
 

@@ -546,8 +546,8 @@ class SimpleTeacherController extends Controller
 
         // Save PDF to temp location
         $pdfPath = str_replace('.png', '.pdf', $imageAbs);
-        $pdfPath = str_replace('tmp_previews_images', 'tmp_uploads', $pdfPath);
-        $pdfPath = str_replace('certificates_images', 'tmp_uploads', $pdfPath);
+        $pdfPath = str_replace('api_certificates_temp', 'tmp_uploads', $pdfPath);
+        $pdfPath = str_replace('certificates', 'tmp_uploads', $pdfPath);
 
         // Ensure directory exists
         $dir = dirname($pdfPath);

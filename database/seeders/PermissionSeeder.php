@@ -171,7 +171,55 @@ class PermissionSeeder extends Seeder
             [
                 'name' => 'إدارة عملاء API',
                 'slug' => Permission::API_CLIENTS_MANAGE,
-                'description' => 'إنشاء وتعديل وحذف عملاء API وربط الدورات',
+                'description' => 'صلاحية كاملة لإدارة عملاء API (تشمل جميع الصلاحيات الفرعية)',
+                'group' => 'إدارة API',
+            ],
+            [
+                'name' => 'إنشاء عملاء API',
+                'slug' => Permission::API_CLIENTS_CREATE,
+                'description' => 'إنشاء عملاء API جدد',
+                'group' => 'إدارة API',
+            ],
+            [
+                'name' => 'تعديل عملاء API',
+                'slug' => Permission::API_CLIENTS_EDIT,
+                'description' => 'تعديل إعدادات عملاء API',
+                'group' => 'إدارة API',
+            ],
+            [
+                'name' => 'حذف عملاء API',
+                'slug' => Permission::API_CLIENTS_DELETE,
+                'description' => 'حذف عملاء API',
+                'group' => 'إدارة API',
+            ],
+            [
+                'name' => 'إدارة بيانات اعتماد API',
+                'slug' => Permission::API_CLIENTS_CREDENTIALS,
+                'description' => 'إعادة إنشاء مفاتيح API وبيانات الاعتماد',
+                'group' => 'إدارة API',
+            ],
+            [
+                'name' => 'عرض ربط الدورات',
+                'slug' => Permission::API_CLIENTS_MAPPINGS_VIEW,
+                'description' => 'عرض ربط الدورات لعملاء API',
+                'group' => 'إدارة API',
+            ],
+            [
+                'name' => 'إنشاء ربط الدورات',
+                'slug' => Permission::API_CLIENTS_MAPPINGS_CREATE,
+                'description' => 'إنشاء ربط دورات جديدة لعملاء API',
+                'group' => 'إدارة API',
+            ],
+            [
+                'name' => 'تعديل ربط الدورات',
+                'slug' => Permission::API_CLIENTS_MAPPINGS_EDIT,
+                'description' => 'تعديل ربط الدورات لعملاء API',
+                'group' => 'إدارة API',
+            ],
+            [
+                'name' => 'حذف ربط الدورات',
+                'slug' => Permission::API_CLIENTS_MAPPINGS_DELETE,
+                'description' => 'حذف ربط الدورات لعملاء API',
                 'group' => 'إدارة API',
             ],
 

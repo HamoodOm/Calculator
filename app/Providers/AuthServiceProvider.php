@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\ApiClient;
+use App\Models\Role;
+use App\Policies\ApiClientPolicy;
+use App\Policies\RolePolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -13,7 +17,8 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        // 'App\Models\Model' => 'App\Policies\ModelPolicy',
+        ApiClient::class => ApiClientPolicy::class,
+        Role::class => RolePolicy::class,
     ];
 
     /**
@@ -25,6 +30,9 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        //
+        // Gate to check if a user can create a role at a specific level
+        Gate::define('create-role-at-level', function ($user, int $level) {
+            return app(RolePolicy::class)->createAtLevel($user, $level);
+        });
     }
 }

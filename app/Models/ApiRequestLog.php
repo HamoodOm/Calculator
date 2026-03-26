@@ -102,6 +102,22 @@ class ApiRequestLog extends Model
     }
 
     /**
+     * Alias: status_code → response_code (view compatibility).
+     */
+    public function getStatusCodeAttribute(): ?int
+    {
+        return $this->response_code;
+    }
+
+    /**
+     * Alias: response_time_ms → execution_time (view compatibility).
+     */
+    public function getResponseTimeMsAttribute(): ?int
+    {
+        return $this->execution_time;
+    }
+
+    /**
      * Get status label.
      */
     public function getStatusLabelAttribute(): string

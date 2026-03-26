@@ -437,7 +437,7 @@ class CertificateApiController extends Controller
         $mpdf->WriteHTML($html);
 
         $pdfPath = str_replace('.png', '.pdf', $imageAbs);
-        $pdfPath = str_replace('certificates_images', 'api_certificates_temp', $pdfPath);
+        $pdfPath = str_replace('certificates', 'api_certificates_temp', $pdfPath);
 
         $dir = dirname($pdfPath);
         if (!is_dir($dir)) {

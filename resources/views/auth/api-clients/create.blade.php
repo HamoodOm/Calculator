@@ -137,6 +137,75 @@
             <p class="text-gray-500 text-xs mt-1">اتركه فارغاً للسماح لجميع العناوين. استخدم فاصلة للفصل بين العناوين.</p>
         </div>
 
+        <!-- ===== Advanced Permissions / Capabilities ===== -->
+        <div class="border-t pt-6">
+            <h3 class="text-base font-semibold text-gray-800 mb-4">صلاحيات متقدمة وقيود</h3>
+
+            <!-- Certificate Type Restrictions -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">أنواع الشهادات المسموح بها</label>
+                <div class="bg-gray-50 rounded-lg p-4 space-y-2">
+                    <p class="text-xs text-gray-500 mb-2">اتركها فارغة للسماح بجميع الأنواع</p>
+                    @foreach(\App\Models\ApiClient::getAvailableCertificateTypes() as $type => $label)
+                        <label class="flex items-center">
+                            <input type="checkbox" name="allowed_certificate_types[]" value="{{ $type }}"
+                                {{ in_array($type, old('allowed_certificate_types', [])) ? 'checked' : '' }}
+                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            <span class="mr-2 text-sm text-gray-700">{{ $label }}</span>
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Max Per Request -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div>
+                    <label for="max_per_request" class="block text-sm font-medium text-gray-700 mb-1">
+                        الحد الأقصى للشهادات في الطلب الواحد
+                    </label>
+                    <input type="number" name="max_per_request" id="max_per_request"
+                        value="{{ old('max_per_request', 1) }}"
+                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        min="1" max="500">
+                    <p class="text-gray-500 text-xs mt-1">عدد الشهادات في طلب API واحد</p>
+                </div>
+
+                <div>
+                    <label for="contact_email" class="block text-sm font-medium text-gray-700 mb-1">
+                        بريد التواصل (اختياري)
+                    </label>
+                    <input type="email" name="contact_email" id="contact_email"
+                        value="{{ old('contact_email') }}"
+                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        placeholder="admin@platform.com">
+                    <p class="text-gray-500 text-xs mt-1">للتواصل مع مسؤول هذه المنصة</p>
+                </div>
+            </div>
+
+            <!-- Flags -->
+            <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                <label class="flex items-start">
+                    <input type="checkbox" name="expose_download_url" value="1"
+                        {{ old('expose_download_url', '1') === '1' ? 'checked' : '' }}
+                        class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                    <div class="mr-3">
+                        <span class="font-medium text-gray-900 text-sm">إرسال رابط التحميل في الاستجابة</span>
+                        <p class="text-xs text-gray-500">يتضمن رابط تحميل الشهادة في رد API</p>
+                    </div>
+                </label>
+
+                <label class="flex items-start">
+                    <input type="checkbox" name="require_webhook_success" value="1"
+                        {{ old('require_webhook_success') ? 'checked' : '' }}
+                        class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                    <div class="mr-3">
+                        <span class="font-medium text-gray-900 text-sm">اشتراط نجاح Webhook</span>
+                        <p class="text-xs text-gray-500">إذا فشل إرسال Webhook، اعتبر الطلب فاشلاً</p>
+                    </div>
+                </label>
+            </div>
+        </div>
+
         <!-- Submit -->
         <div class="flex justify-end gap-3 pt-4 border-t">
             <a href="{{ route('api-clients.index') }}" class="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition">

@@ -57,7 +57,20 @@ class Permission extends Model
 
     // API Client management permissions
     const API_CLIENTS_VIEW = 'api-clients.view';
-    const API_CLIENTS_MANAGE = 'api-clients.manage';
+    const API_CLIENTS_MANAGE = 'api-clients.manage'; // Full access (superset of create+edit+delete+credentials+mappings)
+    const API_CLIENTS_CREATE = 'api-clients.create';
+    const API_CLIENTS_EDIT = 'api-clients.edit';
+    const API_CLIENTS_DELETE = 'api-clients.delete';
+    const API_CLIENTS_CREDENTIALS = 'api-clients.credentials';
+
+    // Course mapping permissions
+    const API_CLIENTS_MAPPINGS_VIEW = 'api-clients.mappings.view';
+    const API_CLIENTS_MAPPINGS_CREATE = 'api-clients.mappings.create';
+    const API_CLIENTS_MAPPINGS_EDIT = 'api-clients.mappings.edit';
+    const API_CLIENTS_MAPPINGS_DELETE = 'api-clients.mappings.delete';
+
+    // Storage management permissions (super admin / developer only)
+    const STORAGE_MANAGE = 'storage.manage';
 
     // Debug permissions (developer only)
     const DEBUG_VIEW = 'debug.view';

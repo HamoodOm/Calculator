@@ -21,8 +21,14 @@ class ApiClient extends Model
         'webhook_secret',
         'allowed_ips',
         'scopes',
+        'allowed_tracks',
+        'allowed_certificate_types',
         'rate_limit',
         'daily_limit',
+        'max_per_request',
+        'require_webhook_success',
+        'expose_download_url',
+        'contact_email',
         'active',
         'last_used_at',
         'total_requests',
@@ -32,7 +38,11 @@ class ApiClient extends Model
     protected $casts = [
         'allowed_ips' => 'array',
         'scopes' => 'array',
+        'allowed_tracks' => 'array',
+        'allowed_certificate_types' => 'array',
         'active' => 'boolean',
+        'require_webhook_success' => 'boolean',
+        'expose_download_url' => 'boolean',
         'last_used_at' => 'datetime',
     ];
 
@@ -227,6 +237,43 @@ class ApiClient extends Model
         return $this->requestLogs()
             ->where('created_at', '>=', now()->startOfDay())
             ->count();
+    }
+
+    /**
+     * Check if client can generate certificates for a specific track ID.
+     */
+    public function isTrackAllowed(int $trackId): bool
+    {
+        // If no restrictions, all tracks are allowed
+        if (empty($this->allowed_tracks)) {
+            return true;
+        }
+
+        return in_array($trackId, $this->allowed_tracks);
+    }
+
+    /**
+     * Check if client can generate a specific certificate type (student/teacher).
+     */
+    public function isCertificateTypeAllowed(string $type): bool
+    {
+        // If no restrictions, all types are allowed
+        if (empty($this->allowed_certificate_types)) {
+            return true;
+        }
+
+        return in_array($type, $this->allowed_certificate_types);
+    }
+
+    /**
+     * Get available certificate types for UI.
+     */
+    public static function getAvailableCertificateTypes(): array
+    {
+        return [
+            'student' => 'شهادات الطلاب',
+            'teacher' => 'شهادات المعلمين',
+        ];
     }
 
     /**

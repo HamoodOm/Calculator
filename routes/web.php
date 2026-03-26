@@ -13,7 +13,10 @@ use App\Http\Controllers\Auth\InstitutionController;
 use App\Http\Controllers\Auth\ActivityLogController;
 use App\Http\Controllers\Auth\TrackController;
 use App\Http\Controllers\Auth\ApiClientController;
+use App\Http\Controllers\TemplateImageController;
+use App\Http\Controllers\Auth\StorageController;
 use App\Models\Permission;
+use App\Models\Role;
 
 // ===== Authentication Routes (Public) =====
 Route::middleware('guest')->group(function () {
@@ -147,33 +150,34 @@ Route::middleware(['auth', 'active'])->prefix('tracks')->name('tracks.')->group(
 });
 
 // ===== API Client Management Routes =====
+// Granular permissions: each route accepts its specific permission OR the broad api-clients.manage
 Route::middleware(['auth', 'active'])->prefix('api-clients')->name('api-clients.')->group(function () {
     Route::get('/', [ApiClientController::class, 'index'])
         ->middleware('permission:' . Permission::API_CLIENTS_VIEW)
         ->name('index');
     Route::get('/create', [ApiClientController::class, 'create'])
-        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->middleware('permission:' . Permission::API_CLIENTS_CREATE . ',' . Permission::API_CLIENTS_MANAGE)
         ->name('create');
     Route::post('/', [ApiClientController::class, 'store'])
-        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->middleware('permission:' . Permission::API_CLIENTS_CREATE . ',' . Permission::API_CLIENTS_MANAGE)
         ->name('store');
     Route::get('/{apiClient}', [ApiClientController::class, 'show'])
         ->middleware('permission:' . Permission::API_CLIENTS_VIEW)
         ->name('show');
     Route::get('/{apiClient}/edit', [ApiClientController::class, 'edit'])
-        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->middleware('permission:' . Permission::API_CLIENTS_EDIT . ',' . Permission::API_CLIENTS_MANAGE)
         ->name('edit');
     Route::put('/{apiClient}', [ApiClientController::class, 'update'])
-        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->middleware('permission:' . Permission::API_CLIENTS_EDIT . ',' . Permission::API_CLIENTS_MANAGE)
         ->name('update');
     Route::delete('/{apiClient}', [ApiClientController::class, 'destroy'])
-        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->middleware('permission:' . Permission::API_CLIENTS_DELETE . ',' . Permission::API_CLIENTS_MANAGE)
         ->name('destroy');
     Route::patch('/{apiClient}/toggle', [ApiClientController::class, 'toggle'])
-        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->middleware('permission:' . Permission::API_CLIENTS_EDIT . ',' . Permission::API_CLIENTS_MANAGE)
         ->name('toggle');
     Route::post('/{apiClient}/regenerate', [ApiClientController::class, 'regenerateCredentials'])
-        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->middleware('permission:' . Permission::API_CLIENTS_CREDENTIALS . ',' . Permission::API_CLIENTS_MANAGE)
         ->name('regenerate');
     Route::get('/{apiClient}/logs', [ApiClientController::class, 'logs'])
         ->middleware('permission:' . Permission::API_CLIENTS_VIEW)
@@ -181,24 +185,48 @@ Route::middleware(['auth', 'active'])->prefix('api-clients')->name('api-clients.
 
     // Course Mappings
     Route::get('/{apiClient}/mappings', [ApiClientController::class, 'courseMappings'])
-        ->middleware('permission:' . Permission::API_CLIENTS_VIEW)
+        ->middleware('permission:' . Permission::API_CLIENTS_MAPPINGS_VIEW . ',' . Permission::API_CLIENTS_VIEW . ',' . Permission::API_CLIENTS_MANAGE)
         ->name('mappings');
     Route::post('/{apiClient}/mappings', [ApiClientController::class, 'storeCourseMapping'])
-        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->middleware('permission:' . Permission::API_CLIENTS_MAPPINGS_CREATE . ',' . Permission::API_CLIENTS_MANAGE)
         ->name('mappings.store');
     Route::put('/{apiClient}/mappings/{mapping}', [ApiClientController::class, 'updateCourseMapping'])
-        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->middleware('permission:' . Permission::API_CLIENTS_MAPPINGS_EDIT . ',' . Permission::API_CLIENTS_MANAGE)
         ->name('mappings.update');
     Route::patch('/{apiClient}/mappings/{mapping}/toggle', [ApiClientController::class, 'toggleCourseMapping'])
-        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->middleware('permission:' . Permission::API_CLIENTS_MAPPINGS_EDIT . ',' . Permission::API_CLIENTS_MANAGE)
         ->name('mappings.toggle');
     Route::delete('/{apiClient}/mappings/{mapping}', [ApiClientController::class, 'destroyCourseMapping'])
-        ->middleware('permission:' . Permission::API_CLIENTS_MANAGE)
+        ->middleware('permission:' . Permission::API_CLIENTS_MAPPINGS_DELETE . ',' . Permission::API_CLIENTS_MANAGE)
         ->name('mappings.destroy');
 });
 
 // ===== Home Route =====
 Route::get('/', fn() => redirect()->route('dashboard'))->middleware('auth');
+
+// ===== Secure Template Image Serving (Auth Required) =====
+// Prevents unauthenticated access to certificate template background images.
+// Direct URL access to /images/templates/* is blocked via .htaccess (Apache)
+// and redirected here for auth check.
+Route::get('/secure/template-image/{path}', [TemplateImageController::class, 'serve'])
+    ->where('path', '.*')
+    ->middleware(['auth', 'active'])
+    ->name('secure.template-image');
+
+// ===== File Manager Routes (Super Admin / Developer Only) =====
+// Route prefix is /file-manager (NOT /storage) to avoid conflict with Laravel's
+// storage/ directory which the web server may intercept before Laravel routes.
+Route::middleware(['auth', 'active', 'role:' . Role::SUPER_ADMIN . ',' . Role::DEVELOPER])
+    ->prefix('file-manager')
+    ->name('storage.')
+    ->group(function () {
+        Route::get('/', [StorageController::class, 'index'])->name('index');
+        Route::post('/cleanup-temp', [StorageController::class, 'cleanupTemp'])->name('cleanup-temp');
+        Route::post('/cleanup-uploads', [StorageController::class, 'cleanupUploads'])->name('cleanup-uploads');
+        Route::post('/cleanup-generated', [StorageController::class, 'cleanupGenerated'])->name('cleanup-generated');
+        Route::post('/cleanup-all', [StorageController::class, 'cleanupAll'])->name('cleanup-all');
+        Route::post('/delete-file', [StorageController::class, 'deleteFile'])->name('delete-file');
+    });
 
 // ===== Teacher Admin (Full Editor) - Requires Teacher Admin Permission =====
 Route::middleware(['auth', 'active', 'permission:' . Permission::TEACHER_ADMIN_VIEW])

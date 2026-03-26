@@ -76,7 +76,7 @@
                     @endif
 
                     {{-- Admin Menu --}}
-                    @if($user->canManageUsers() || $user->canManageRoles() || $user->canManageInstitutions() || $user->hasPermission(\App\Models\Permission::TRACKS_VIEW) || $user->hasPermission(\App\Models\Permission::ACTIVITY_LOGS_VIEW) || $user->hasPermission(\App\Models\Permission::API_CLIENTS_VIEW))
+                    @if($user->canManageUsers() || $user->canManageRoles() || $user->canManageInstitutions() || $user->hasPermission(\App\Models\Permission::TRACKS_VIEW) || $user->hasPermission(\App\Models\Permission::ACTIVITY_LOGS_VIEW) || $user->hasPermission(\App\Models\Permission::API_CLIENTS_VIEW) || $user->isSuperUser())
                     <div class="relative group">
                         <button class="{{ $theme['text'] }} {{ $theme['hover'] }} px-3 py-2 text-sm font-medium rounded-md flex items-center">
                             الإدارة
@@ -113,6 +113,12 @@
                             @if($user->hasPermission(\App\Models\Permission::API_CLIENTS_VIEW))
                             <a href="{{ route('api-clients.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 عملاء API
+                            </a>
+                            @endif
+                            @if($user->isSuperUser())
+                            <div class="border-t border-gray-100 my-1"></div>
+                            <a href="{{ route('storage.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                إدارة الملفات
                             </a>
                             @endif
                         </div>
@@ -192,6 +198,9 @@
             @endif
             @if($user->hasPermission(\App\Models\Permission::API_CLIENTS_VIEW))
             <a href="{{ route('api-clients.index') }}" class="block px-3 py-2 text-sm {{ $theme['text'] }} {{ $theme['hover'] }} rounded">عملاء API</a>
+            @endif
+            @if($user->isSuperUser())
+            <a href="{{ route('storage.index') }}" class="block px-3 py-2 text-sm {{ $theme['text'] }} {{ $theme['hover'] }} rounded">إدارة الملفات</a>
             @endif
         </div>
     </div>

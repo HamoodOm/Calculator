@@ -20,6 +20,8 @@ class ApiClientController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', ApiClient::class);
+
         $user = auth()->user();
 
         $query = ApiClient::with('institution')
@@ -60,6 +62,8 @@ class ApiClientController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', ApiClient::class);
+
         $user = auth()->user();
         $institutions = $user->isSuperUser()
             ? Institution::where('is_active', true)->orderBy('name')->get()
@@ -75,6 +79,8 @@ class ApiClientController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', ApiClient::class);
+
         $user = auth()->user();
 
         $request->validate([
@@ -87,6 +93,10 @@ class ApiClientController extends Controller
             'scopes' => 'required|array|min:1',
             'rate_limit' => 'required|integer|min:1|max:1000',
             'daily_limit' => 'required|integer|min:1|max:100000',
+            'allowed_certificate_types' => 'nullable|array',
+            'allowed_certificate_types.*' => 'in:student,teacher',
+            'max_per_request' => 'nullable|integer|min:1|max:500',
+            'contact_email' => 'nullable|email|max:255',
         ]);
 
         // Generate API credentials
@@ -111,8 +121,13 @@ class ApiClientController extends Controller
             'webhook_secret' => $webhookSecret,
             'allowed_ips' => $allowedIps,
             'scopes' => $request->scopes,
+            'allowed_certificate_types' => $request->allowed_certificate_types ?: null,
             'rate_limit' => $request->rate_limit,
             'daily_limit' => $request->daily_limit,
+            'max_per_request' => $request->max_per_request ?? 1,
+            'require_webhook_success' => $request->boolean('require_webhook_success'),
+            'expose_download_url' => $request->boolean('expose_download_url', true),
+            'contact_email' => $request->contact_email,
             'active' => true,
         ]);
 
@@ -135,12 +150,7 @@ class ApiClientController extends Controller
      */
     public function show(ApiClient $apiClient)
     {
-        $user = auth()->user();
-
-        // Authorization check
-        if (!$user->isSuperUser() && $apiClient->institution_id !== $user->institution_id) {
-            abort(403);
-        }
+        $this->authorize('view', $apiClient);
 
         $apiClient->load(['institution', 'courseMappings.track']);
 
@@ -165,12 +175,9 @@ class ApiClientController extends Controller
      */
     public function edit(ApiClient $apiClient)
     {
+        $this->authorize('update', $apiClient);
+
         $user = auth()->user();
-
-        if (!$user->isSuperUser() && $apiClient->institution_id !== $user->institution_id) {
-            abort(403);
-        }
-
         $institutions = $user->isSuperUser()
             ? Institution::where('is_active', true)->orderBy('name')->get()
             : collect([$user->institution]);
@@ -185,11 +192,7 @@ class ApiClientController extends Controller
      */
     public function update(Request $request, ApiClient $apiClient)
     {
-        $user = auth()->user();
-
-        if (!$user->isSuperUser() && $apiClient->institution_id !== $user->institution_id) {
-            abort(403);
-        }
+        $this->authorize('update', $apiClient);
 
         $request->validate([
             'name' => 'required|string|max:255',
@@ -199,6 +202,10 @@ class ApiClientController extends Controller
             'scopes' => 'required|array|min:1',
             'rate_limit' => 'required|integer|min:1|max:1000',
             'daily_limit' => 'required|integer|min:1|max:100000',
+            'allowed_certificate_types' => 'nullable|array',
+            'allowed_certificate_types.*' => 'in:student,teacher',
+            'max_per_request' => 'nullable|integer|min:1|max:500',
+            'contact_email' => 'nullable|email|max:255',
         ]);
 
         $oldValues = $apiClient->toArray();
@@ -215,8 +222,13 @@ class ApiClientController extends Controller
             'webhook_url' => $request->webhook_url,
             'allowed_ips' => $allowedIps,
             'scopes' => $request->scopes,
+            'allowed_certificate_types' => $request->allowed_certificate_types ?: null,
             'rate_limit' => $request->rate_limit,
             'daily_limit' => $request->daily_limit,
+            'max_per_request' => $request->max_per_request ?? 1,
+            'require_webhook_success' => $request->boolean('require_webhook_success'),
+            'expose_download_url' => $request->boolean('expose_download_url', true),
+            'contact_email' => $request->contact_email,
         ]);
 
         // Log update
@@ -231,11 +243,7 @@ class ApiClientController extends Controller
      */
     public function toggle(ApiClient $apiClient)
     {
-        $user = auth()->user();
-
-        if (!$user->isSuperUser() && $apiClient->institution_id !== $user->institution_id) {
-            abort(403);
-        }
+        $this->authorize('toggle', $apiClient);
 
         $apiClient->update(['active' => !$apiClient->active]);
 
@@ -249,11 +257,7 @@ class ApiClientController extends Controller
      */
     public function regenerateCredentials(ApiClient $apiClient)
     {
-        $user = auth()->user();
-
-        if (!$user->isSuperUser() && $apiClient->institution_id !== $user->institution_id) {
-            abort(403);
-        }
+        $this->authorize('regenerateCredentials', $apiClient);
 
         $apiKey = ApiClient::generateApiKey();
         $apiSecret = ApiClient::generateApiSecret();
@@ -279,11 +283,7 @@ class ApiClientController extends Controller
      */
     public function destroy(ApiClient $apiClient)
     {
-        $user = auth()->user();
-
-        if (!$user->isSuperUser() && $apiClient->institution_id !== $user->institution_id) {
-            abort(403);
-        }
+        $this->authorize('delete', $apiClient);
 
         ActivityLogService::logDelete($apiClient);
 
@@ -298,11 +298,7 @@ class ApiClientController extends Controller
      */
     public function logs(Request $request, ApiClient $apiClient)
     {
-        $user = auth()->user();
-
-        if (!$user->isSuperUser() && $apiClient->institution_id !== $user->institution_id) {
-            abort(403);
-        }
+        $this->authorize('viewLogs', $apiClient);
 
         $query = $apiClient->requestLogs();
 
@@ -331,11 +327,9 @@ class ApiClientController extends Controller
      */
     public function courseMappings(ApiClient $apiClient)
     {
-        $user = auth()->user();
+        $this->authorize('viewMappings', $apiClient);
 
-        if (!$user->isSuperUser() && $apiClient->institution_id !== $user->institution_id) {
-            abort(403);
-        }
+        $user = auth()->user();
 
         $mappings = $apiClient->courseMappings()
             ->with('track')
@@ -355,11 +349,7 @@ class ApiClientController extends Controller
      */
     public function storeCourseMapping(Request $request, ApiClient $apiClient)
     {
-        $user = auth()->user();
-
-        if (!$user->isSuperUser() && $apiClient->institution_id !== $user->institution_id) {
-            abort(403);
-        }
+        $this->authorize('createMapping', $apiClient);
 
         $request->validate([
             'external_course_id' => 'required|string|max:100',
@@ -400,11 +390,7 @@ class ApiClientController extends Controller
      */
     public function updateCourseMapping(Request $request, ApiClient $apiClient, CourseMapping $mapping)
     {
-        $user = auth()->user();
-
-        if (!$user->isSuperUser() && $apiClient->institution_id !== $user->institution_id) {
-            abort(403);
-        }
+        $this->authorize('updateMapping', $apiClient);
 
         if ($mapping->api_client_id !== $apiClient->id) {
             abort(404);
@@ -438,11 +424,7 @@ class ApiClientController extends Controller
      */
     public function toggleCourseMapping(ApiClient $apiClient, CourseMapping $mapping)
     {
-        $user = auth()->user();
-
-        if (!$user->isSuperUser() && $apiClient->institution_id !== $user->institution_id) {
-            abort(403);
-        }
+        $this->authorize('updateMapping', $apiClient);
 
         if ($mapping->api_client_id !== $apiClient->id) {
             abort(404);
@@ -458,11 +440,7 @@ class ApiClientController extends Controller
      */
     public function destroyCourseMapping(ApiClient $apiClient, CourseMapping $mapping)
     {
-        $user = auth()->user();
-
-        if (!$user->isSuperUser() && $apiClient->institution_id !== $user->institution_id) {
-            abort(403);
-        }
+        $this->authorize('deleteMapping', $apiClient);
 
         if ($mapping->api_client_id !== $apiClient->id) {
             abort(404);

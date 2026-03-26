@@ -11,22 +11,24 @@
         العودة للقائمة
     </a>
 
-    @if(auth()->user()->hasPermission(\App\Models\Permission::API_CLIENTS_MANAGE))
     <div class="flex gap-2">
+        @if(auth()->user()->hasAnyPermission([\App\Models\Permission::API_CLIENTS_MAPPINGS_VIEW, \App\Models\Permission::API_CLIENTS_VIEW, \App\Models\Permission::API_CLIENTS_MANAGE]))
         <a href="{{ route('api-clients.mappings', $apiClient) }}" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
             </svg>
             ربط الدورات
         </a>
+        @endif
+        @if(auth()->user()->hasAnyPermission([\App\Models\Permission::API_CLIENTS_EDIT, \App\Models\Permission::API_CLIENTS_MANAGE]))
         <a href="{{ route('api-clients.edit', $apiClient) }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
             </svg>
             تعديل
         </a>
+        @endif
     </div>
-    @endif
 </div>
 
 @if (session('status'))
@@ -156,19 +158,33 @@
     </div>
 </div>
 
-<!-- Scopes & Limits -->
+<!-- Scopes, Limits & Capabilities -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
     <!-- Scopes -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b border-gray-200">
-            <h2 class="text-lg font-bold text-gray-800">الصلاحيات</h2>
+            <h2 class="text-lg font-bold text-gray-800">الصلاحيات (Scopes)</h2>
         </div>
         <div class="p-6">
-            <div class="flex flex-wrap gap-2">
-                @foreach($apiClient->scopes ?? [] as $scope)
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
-                        {{ $scope }}
-                    </span>
+            @php $allScopes = \App\Models\ApiClient::getAvailableScopes(); @endphp
+            <div class="space-y-2">
+                @foreach($allScopes as $scope => $info)
+                    @if(in_array($scope, $apiClient->scopes ?? []))
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 bg-green-500 rounded-full flex-shrink-0"></span>
+                            <div>
+                                <span class="text-sm font-medium text-gray-800">{{ $info['name'] }}</span>
+                                <span class="text-xs text-gray-500 block">{{ $scope }}</span>
+                            </div>
+                        </div>
+                    @else
+                        <div class="flex items-center gap-2 opacity-40">
+                            <span class="w-4 h-4 bg-gray-300 rounded-full flex-shrink-0"></span>
+                            <div>
+                                <span class="text-sm text-gray-500">{{ $info['name'] }}</span>
+                            </div>
+                        </div>
+                    @endif
                 @endforeach
             </div>
         </div>
@@ -179,18 +195,71 @@
         <div class="px-6 py-4 border-b border-gray-200">
             <h2 class="text-lg font-bold text-gray-800">حدود الاستخدام</h2>
         </div>
-        <div class="p-6 space-y-4">
-            <div class="flex justify-between items-center">
-                <span class="text-gray-600">حد الدقيقة</span>
-                <span class="font-bold">{{ $apiClient->rate_limit }} طلب/دقيقة</span>
+        <div class="p-6 space-y-3">
+            <div class="flex justify-between items-center py-1 border-b border-gray-50">
+                <span class="text-gray-600 text-sm">حد الدقيقة</span>
+                <span class="font-semibold">{{ $apiClient->rate_limit }} طلب/دقيقة</span>
             </div>
-            <div class="flex justify-between items-center">
-                <span class="text-gray-600">حد اليوم</span>
-                <span class="font-bold">{{ number_format($apiClient->daily_limit) }} طلب/يوم</span>
+            <div class="flex justify-between items-center py-1 border-b border-gray-50">
+                <span class="text-gray-600 text-sm">حد اليوم</span>
+                <span class="font-semibold">{{ number_format($apiClient->daily_limit) }} طلب/يوم</span>
             </div>
-            <div class="flex justify-between items-center">
-                <span class="text-gray-600">الاستخدام اليومي</span>
-                <span class="font-bold">{{ number_format($apiClient->daily_requests) }}</span>
+            <div class="flex justify-between items-center py-1 border-b border-gray-50">
+                <span class="text-gray-600 text-sm">الاستخدام اليومي</span>
+                <span class="font-semibold">{{ number_format($apiClient->daily_requests) }}</span>
+            </div>
+            <div class="flex justify-between items-center py-1 border-b border-gray-50">
+                <span class="text-gray-600 text-sm">الحد الأقصى لكل طلب</span>
+                <span class="font-semibold">{{ $apiClient->max_per_request ?? 1 }} شهادة</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Capabilities Card -->
+<div class="bg-white rounded-lg shadow mb-6">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-bold text-gray-800">الصلاحيات والقيود المتقدمة</h2>
+    </div>
+    <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <h3 class="text-sm font-medium text-gray-700 mb-2">أنواع الشهادات المسموح بها</h3>
+                @if(empty($apiClient->allowed_certificate_types))
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">الكل (طلاب + معلمين)</span>
+                @else
+                    <div class="flex flex-wrap gap-1">
+                        @foreach($apiClient->allowed_certificate_types as $type)
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                {{ $type === 'student' ? 'طلاب' : 'معلمين' }}
+                            </span>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+            <div>
+                <h3 class="text-sm font-medium text-gray-700 mb-2">المسارات المسموح بها</h3>
+                @if(empty($apiClient->allowed_tracks))
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">جميع المسارات</span>
+                @else
+                    <span class="text-sm text-gray-600">{{ count($apiClient->allowed_tracks) }} مسار محدد</span>
+                @endif
+            </div>
+            <div>
+                <h3 class="text-sm font-medium text-gray-700 mb-2">إعدادات إضافية</h3>
+                <ul class="space-y-1 text-sm">
+                    <li class="flex items-center gap-1">
+                        <span class="w-3 h-3 rounded-full {{ $apiClient->expose_download_url ?? true ? 'bg-green-500' : 'bg-gray-300' }}"></span>
+                        إرسال رابط التحميل
+                    </li>
+                    <li class="flex items-center gap-1">
+                        <span class="w-3 h-3 rounded-full {{ $apiClient->require_webhook_success ? 'bg-green-500' : 'bg-gray-300' }}"></span>
+                        اشتراط نجاح Webhook
+                    </li>
+                    @if($apiClient->contact_email)
+                    <li class="text-gray-500 text-xs mt-1">📧 {{ $apiClient->contact_email }}</li>
+                    @endif
+                </ul>
             </div>
         </div>
     </div>
@@ -261,18 +330,23 @@
                             <code class="bg-gray-100 px-1 rounded">{{ $log->endpoint }}</code>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            @if($log->status_code >= 200 && $log->status_code < 300)
+                            @php $code = $log->response_code; @endphp
+                            @if($code >= 200 && $code < 300)
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                    {{ $log->status_code }}
+                                    {{ $code }}
+                                </span>
+                            @elseif($code >= 400 && $code < 500)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    {{ $code }}
                                 </span>
                             @else
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                                    {{ $log->status_code }}
+                                    {{ $code ?? '-' }}
                                 </span>
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {{ $log->response_time_ms ?? '-' }} ms
+                            {{ $log->execution_time !== null ? $log->execution_time . ' ms' : '-' }}
                         </td>
                     </tr>
                 @empty
@@ -288,12 +362,13 @@
 </div>
 
 <!-- Actions -->
-@if(auth()->user()->hasPermission(\App\Models\Permission::API_CLIENTS_MANAGE))
+@if(auth()->user()->hasAnyPermission([\App\Models\Permission::API_CLIENTS_CREDENTIALS, \App\Models\Permission::API_CLIENTS_EDIT, \App\Models\Permission::API_CLIENTS_DELETE, \App\Models\Permission::API_CLIENTS_MANAGE]))
 <div class="bg-white rounded-lg shadow">
     <div class="px-6 py-4 border-b border-gray-200">
         <h2 class="text-lg font-bold text-gray-800">إجراءات</h2>
     </div>
     <div class="p-6 flex flex-wrap gap-4">
+        @if(auth()->user()->hasAnyPermission([\App\Models\Permission::API_CLIENTS_CREDENTIALS, \App\Models\Permission::API_CLIENTS_MANAGE]))
         <!-- Regenerate Credentials -->
         <form action="{{ route('api-clients.regenerate', $apiClient) }}" method="POST"
             onsubmit="return confirm('هل أنت متأكد؟ سيتم إلغاء بيانات الاعتماد الحالية.')">
@@ -305,7 +380,9 @@
                 إعادة إنشاء بيانات الاعتماد
             </button>
         </form>
+        @endif
 
+        @if(auth()->user()->hasAnyPermission([\App\Models\Permission::API_CLIENTS_EDIT, \App\Models\Permission::API_CLIENTS_MANAGE]))
         <!-- Toggle Status -->
         <form action="{{ route('api-clients.toggle', $apiClient) }}" method="POST">
             @csrf
@@ -324,7 +401,9 @@
                 @endif
             </button>
         </form>
+        @endif
 
+        @if(auth()->user()->hasAnyPermission([\App\Models\Permission::API_CLIENTS_DELETE, \App\Models\Permission::API_CLIENTS_MANAGE]))
         <!-- Delete -->
         <form action="{{ route('api-clients.destroy', $apiClient) }}" method="POST"
             onsubmit="return confirm('هل أنت متأكد من حذف هذا العميل؟ لا يمكن التراجع عن هذا الإجراء.')">
@@ -337,6 +416,7 @@
                 حذف العميل
             </button>
         </form>
+        @endif
     </div>
 </div>
 @endif

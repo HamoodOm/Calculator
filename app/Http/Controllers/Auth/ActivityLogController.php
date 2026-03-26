@@ -159,7 +159,7 @@ class ActivityLogController extends Controller
             foreach ($logs as $log) {
                 fputcsv($out, [
                     $log->created_at->format('Y-m-d H:i:s'),
-                    $log->user_name ?? 'غير معروف',
+                    $log->display_user_name,
                     $log->action_label,
                     $log->description,
                     $log->institution?->name ?? '-',

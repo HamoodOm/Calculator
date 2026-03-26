@@ -7,6 +7,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class RoleController extends Controller
 {
@@ -15,6 +16,8 @@ class RoleController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Role::class);
+
         // Get sorting parameters
         $sortColumn = $request->get('sort', 'level');
         $sortDirection = $request->get('dir', 'asc');
@@ -56,6 +59,8 @@ class RoleController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', Role::class);
+
         $permissions = Permission::getGrouped();
         $themeColors = Role::getAvailableThemeColors();
 
@@ -74,6 +79,8 @@ class RoleController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', Role::class);
+
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:roles', 'regex:/^[a-z0-9-]+$/'],
@@ -88,12 +95,31 @@ class RoleController extends Controller
             'permissions.*' => ['exists:permissions,id'],
         ]);
 
+        $level = $request->input('level', 99);
+
+        // Prevent privilege escalation: ensure new role level >= user's level
+        if (!Gate::allows('create-role-at-level', $level)) {
+            return back()->withErrors(['level' => 'لا يمكنك إنشاء دور بمستوى صلاحية أعلى من مستواك.'])
+                ->withInput();
+        }
+
+        // Validate permission escalation: user can only assign permissions they have
+        if ($request->has('permissions') && !auth()->user()->isSuperAdmin()) {
+            $requestedPermissions = Permission::whereIn('id', $request->permissions)->pluck('slug');
+            foreach ($requestedPermissions as $slug) {
+                if (!auth()->user()->hasPermission($slug)) {
+                    return back()->withErrors(['permissions' => 'لا يمكنك منح صلاحيات لا تملكها.'])
+                        ->withInput();
+                }
+            }
+        }
+
         $role = Role::create([
             'name' => $request->name,
             'slug' => $request->slug,
             'description' => $request->description,
             'is_system' => false,
-            'level' => $request->input('level', 99),
+            'level' => $level,
             'theme_hover' => $request->theme_hover,
             'theme_text' => $request->theme_text,
             'theme_accent' => $request->theme_accent,
@@ -119,6 +145,8 @@ class RoleController extends Controller
      */
     public function edit(Role $role)
     {
+        $this->authorize('update', $role);
+
         $permissions = Permission::getGrouped();
         $rolePermissionIds = $role->permissions->pluck('id')->toArray();
         $themeColors = Role::getAvailableThemeColors();
@@ -142,10 +170,7 @@ class RoleController extends Controller
      */
     public function update(Request $request, Role $role)
     {
-        // Prevent editing system roles (except permissions and theme for super-admin)
-        if ($role->is_system && !$role->isSuperAdmin()) {
-            return back()->withErrors(['error' => 'لا يمكن تعديل الأدوار النظامية.']);
-        }
+        $this->authorize('update', $role);
 
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -160,6 +185,17 @@ class RoleController extends Controller
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['exists:permissions,id'],
         ]);
+
+        // Validate permission escalation for non-super-admins
+        if ($request->has('permissions') && !auth()->user()->isSuperAdmin()) {
+            $requestedPermissions = Permission::whereIn('id', $request->permissions)->pluck('slug');
+            foreach ($requestedPermissions as $slug) {
+                if (!auth()->user()->hasPermission($slug)) {
+                    return back()->withErrors(['permissions' => 'لا يمكنك منح صلاحيات لا تملكها.'])
+                        ->withInput();
+                }
+            }
+        }
 
         // Store old values for logging
         $oldValues = $role->toArray();
@@ -179,7 +215,15 @@ class RoleController extends Controller
         // Don't allow changing slug or level for system roles
         if (!$role->is_system) {
             $updateData['slug'] = $request->slug;
-            $updateData['level'] = $request->input('level', 99);
+            $newLevel = $request->input('level', 99);
+
+            // Prevent privilege escalation via level change
+            if (!Gate::allows('create-role-at-level', $newLevel)) {
+                return back()->withErrors(['level' => 'لا يمكنك تعيين مستوى صلاحية أعلى من مستواك.'])
+                    ->withInput();
+            }
+
+            $updateData['level'] = $newLevel;
         }
 
         $role->update($updateData);
@@ -206,15 +250,16 @@ class RoleController extends Controller
      */
     public function destroy(Role $role)
     {
-        // Prevent deleting system roles
+        // Data integrity checks (even super admin shouldn't bypass these)
         if ($role->is_system) {
             return back()->withErrors(['error' => 'لا يمكن حذف الأدوار النظامية.']);
         }
 
-        // Check if role has users
         if ($role->users()->count() > 0) {
             return back()->withErrors(['error' => 'لا يمكن حذف دور له مستخدمين. قم بنقل المستخدمين أولاً.']);
         }
+
+        $this->authorize('delete', $role);
 
         // Log role deletion before deleting
         ActivityLogService::logDelete($role);

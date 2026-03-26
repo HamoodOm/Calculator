@@ -121,8 +121,13 @@
                                 <a href="{{ route('users.edit', $log->user) }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-900">
                                     {{ $log->user_name }}
                                 </a>
+                            @elseif(!empty($log->metadata['api_client_name']))
+                                <span class="text-sm font-medium text-purple-600">
+                                    {{ $log->metadata['api_client_name'] }}
+                                    <span class="text-xs text-gray-400 block">API</span>
+                                </span>
                             @else
-                                <span class="text-sm text-gray-500">{{ $log->user_name ?? 'غير معروف' }}</span>
+                                <span class="text-sm text-gray-500">{{ $log->display_user_name }}</span>
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">

@@ -17,8 +17,8 @@ class ImageCertificateService
     private const EXPECTED_WIDTH = 3508;  // 297mm at 300 DPI
     private const EXPECTED_HEIGHT = 2480; // 210mm at 300 DPI
 
-    protected string $root = 'certificates_images';
-    protected string $previewRoot = 'tmp_previews_images';
+    protected string $root = 'certificates';
+    protected string $previewRoot = 'api_certificates_temp';
     protected ?Arabic $arabic = null;
 
     // Dynamic scale factors for current image

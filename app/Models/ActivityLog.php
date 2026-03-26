@@ -156,6 +156,30 @@ class ActivityLog extends Model
     }
 
     /**
+     * Get the display name for the actor (user or API client/institution).
+     * Returns user name, institution name (for API actions), or 'غير معروف'.
+     */
+    public function getDisplayUserNameAttribute(): string
+    {
+        // If user_name is stored directly, use it
+        if (!empty($this->user_name)) {
+            return $this->user_name;
+        }
+
+        // If no user but institution is known (API-generated actions)
+        if ($this->institution_id && $this->institution) {
+            return 'منصة ' . $this->institution->name . ' (API)';
+        }
+
+        // Check metadata for api_client info
+        if (!empty($this->metadata['api_client_name'])) {
+            return $this->metadata['api_client_name'] . ' (API)';
+        }
+
+        return 'غير معروف';
+    }
+
+    /**
      * Scope to filter by model type.
      */
     public function scopeForModel($query, string $modelType)
